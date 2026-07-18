@@ -1,0 +1,27 @@
+﻿<div class="auth">
+  <div class="auth__card wb-card">
+    <div class="auth__head">
+      <h1 *ngIf="mode === 'forgot'">Reset your password</h1>
+      <h1 *ngIf="mode === 'reset'">Choose a new password</h1>
+      <h1 *ngIf="mode === 'verify'">Verify your email</h1>
+    </div>
+
+    <p class="auth__error" *ngIf="error">{{ error }}</p>
+    <p class="auth__success" *ngIf="success">{{ success }}</p>
+
+    <div class="auth__field" *ngIf="mode === 'forgot' && !success">
+      <label>Email</label>
+      <input type="email" [(ngModel)]="email" (keyup.enter)="submit()" />
+    </div>
+    <div class="auth__field" *ngIf="mode === 'reset' && !success">
+      <label>New password</label>
+      <input type="password" [(ngModel)]="newPassword" (keyup.enter)="submit()" />
+    </div>
+
+    <button *ngIf="mode !== 'verify' && !success" class="wb-btn wb-btn--primary auth__submit"
+            (click)="submit()" [disabled]="loading">
+      {{ loading ? 'Working...' : (mode === 'forgot' ? 'Send reset link' : 'Change password') }}
+    </button>
+    <p class="auth__switch"><a routerLink="/login">Back to sign in</a></p>
+  </div>
+</div>

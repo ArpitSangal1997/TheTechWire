@@ -1,0 +1,109 @@
+<div class="wb-container admin">
+  <header class="admin__head">
+    <div>
+      <span class="wb-eyebrow">Back office</span>
+      <h1>Monetisation desk</h1>
+      <p>Manage brand endorsements and sponsored placements across the site.</p>
+    </div>
+    <button class="wb-btn wb-btn--primary" (click)="openNew()">+ New brand deal</button>
+  </header>
+
+  <div class="admin__stats">
+    <div class="stat wb-card">
+      <span class="stat__label">Active deals</span>
+      <span class="stat__value">{{ activeDeals }}</span>
+    </div>
+    <div class="stat wb-card">
+      <span class="stat__label">Total impressions</span>
+      <span class="stat__value">{{ totalImpressions }}</span>
+    </div>
+    <div class="stat wb-card">
+      <span class="stat__label">Total clicks</span>
+      <span class="stat__value">{{ totalClicks }}</span>
+    </div>
+  </div>
+
+  <table class="admin__table wb-card" *ngIf="!loading">
+    <thead>
+      <tr>
+        <th>Brand</th>
+        <th>Headline</th>
+        <th>Placement</th>
+        <th>Status</th>
+        <th>Window</th>
+        <th>Impr.</th>
+        <th>Clicks</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let s of sponsorships">
+        <td><strong>{{ s.brandName }}</strong></td>
+        <td class="admin__truncate">{{ s.headline }}</td>
+        <td><span class="wb-tag">{{ s.placement }}</span></td>
+        <td><span class="status status--{{ s.status.toLowerCase() }}">{{ s.status }}</span></td>
+        <td class="admin__mono">{{ s.startDate }} → {{ s.endDate }}</td>
+        <td>{{ s.impressions }}</td>
+        <td>{{ s.clicks }}</td>
+        <td class="admin__actions">
+          <button (click)="openEdit(s)">Edit</button>
+          <button class="danger" (click)="remove(s)">Remove</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p *ngIf="!loading && !sponsorships.length" class="admin__empty">
+    No brand deals yet — click "New brand deal" to set up your first sponsored placement.
+  </p>
+
+  <!-- FORM MODAL -->
+  <div class="overlay" *ngIf="showForm" (click)="showForm = false">
+    <div class="form wb-card" (click)="$event.stopPropagation()">
+      <h3>{{ editingId ? 'Edit' : 'New' }} brand deal</h3>
+
+      <label>Brand name</label>
+      <input [(ngModel)]="form.brandName" placeholder="e.g. Acme Coffee Co." />
+
+      <label>Ad headline</label>
+      <input [(ngModel)]="form.headline" placeholder="What readers see" />
+
+      <label>Target URL</label>
+      <input [(ngModel)]="form.targetUrl" placeholder="https://brand-site.com" />
+
+      <label>Creative image URL (optional)</label>
+      <input [(ngModel)]="form.creativeImageUrl" placeholder="https://…" />
+
+      <div class="form__row">
+        <div>
+          <label>Placement</label>
+          <select [(ngModel)]="form.placement">
+            <option *ngFor="let p of placements" [value]="p">{{ p }}</option>
+          </select>
+        </div>
+        <div>
+          <label>Status</label>
+          <select [(ngModel)]="form.status">
+            <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form__row">
+        <div>
+          <label>Start date</label>
+          <input type="date" [(ngModel)]="form.startDate" />
+        </div>
+        <div>
+          <label>End date</label>
+          <input type="date" [(ngModel)]="form.endDate" />
+        </div>
+      </div>
+
+      <div class="form__actions">
+        <button class="wb-btn wb-btn--ghost" (click)="showForm = false">Cancel</button>
+        <button class="wb-btn wb-btn--primary" (click)="save()">Save deal</button>
+      </div>
+    </div>
+  </div>
+</div>

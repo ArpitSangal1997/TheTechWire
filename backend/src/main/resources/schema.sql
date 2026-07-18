@@ -1,0 +1,24 @@
+ALTER TABLE IF EXISTS users
+    ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
+
+UPDATE users
+    SET email_verified = FALSE
+    WHERE email_verified IS NULL;
+
+ALTER TABLE IF EXISTS users
+    ALTER COLUMN email_verified SET NOT NULL;
+
+ALTER TABLE IF EXISTS users
+    ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255);
+
+ALTER TABLE IF EXISTS users
+    ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR(255);
+
+ALTER TABLE IF EXISTS users
+    ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMP WITH TIME ZONE;
+
+ALTER TABLE IF EXISTS news_headlines
+    ALTER COLUMN title TYPE TEXT,
+    ALTER COLUMN source_url TYPE TEXT,
+    ALTER COLUMN source_name TYPE TEXT,
+    ALTER COLUMN image_url TYPE TEXT;

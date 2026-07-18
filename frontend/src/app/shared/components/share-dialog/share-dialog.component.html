@@ -1,0 +1,28 @@
+<div class="overlay" (click)="close()">
+  <div class="sheet wb-card" (click)="$event.stopPropagation()">
+    <div class="sheet__head">
+      <h3>Share this story</h3>
+      <button class="sheet__close" (click)="close()" aria-label="Close">✕</button>
+    </div>
+
+    <div class="sheet__row">
+      <input class="sheet__link" [value]="publicUrl" readonly />
+      <button class="wb-btn wb-btn--ink" (click)="copyLink()">{{ copied ? 'Copied!' : 'Copy link' }}</button>
+    </div>
+
+    <div class="sheet__grid">
+      <button class="chan" (click)="shareExternal('WHATSAPP')">WhatsApp</button>
+      <button class="chan" (click)="shareExternal('TWITTER')">X / Twitter</button>
+      <button class="chan" (click)="shareExternal('LINKEDIN')">LinkedIn</button>
+      <button class="chan" (click)="shareExternal('FACEBOOK')">Facebook</button>
+      <button class="chan" (click)="shareExternal('EMAIL')">Email</button>
+    </div>
+
+    <div class="sheet__divider"><span>or send to a Wire user</span></div>
+
+    <div class="sheet__row">
+      <input class="sheet__handle" placeholder="@theirhandle" [(ngModel)]="handleInput" />
+      <button class="wb-btn wb-btn--primary" (click)="sendInApp()" [disabled]="sendingTo">Send</button>
+    </div>
+  </div>
+</div>

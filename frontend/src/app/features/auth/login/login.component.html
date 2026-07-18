@@ -1,0 +1,27 @@
+<div class="auth">
+  <div class="auth__card wb-card">
+    <div class="auth__head">
+      <h1>Welcome back</h1>
+      <p>Sign in to write, comment, and share.</p>
+    </div>
+
+    <p class="auth__error" *ngIf="error">{{ error }}</p>
+
+    <div class="auth__field">
+      <label>Email</label>
+      <input type="email" [(ngModel)]="email" placeholder="you@example.com" />
+    </div>
+    <div class="auth__field">
+      <label>Password</label>
+      <input type="password" [(ngModel)]="password" placeholder="••••••••" (keyup.enter)="submit()" />
+    </div>
+
+    <button class="wb-btn wb-btn--primary auth__submit" (click)="submit()" [disabled]="loading">
+      {{ loading ? 'Signing in…' : 'Sign in' }}
+    </button>
+
+    <p class="auth__switch"><a routerLink="/forgot-password">Forgot password?</a></p>
+
+    <p class="auth__switch">New here? <a routerLink="/register">Create an account</a></p>
+  </div>
+</div>

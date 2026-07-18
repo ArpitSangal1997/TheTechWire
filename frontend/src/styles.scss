@@ -1,0 +1,151 @@
+/* ===========================================================
+   THE WIRE — design tokens
+   A personal editorial desk plugged into a live news feed.
+   =========================================================== */
+
+@import 'quill/dist/quill.snow.css';
+
+:root {
+  /* Color */
+  --ink: #10151b;          /* background, near-black blue-ink */
+  --ink-raised: #161d25;   /* slightly lifted panels on ink */
+  --paper: #f6f3ec;        /* card / content background, warm off-white */
+  --paper-dim: #ece7da;
+  --amber: #e8a33d;        /* primary accent — CTAs, links, live ticker */
+  --amber-soft: rgba(232, 163, 61, 0.16);
+  --teal: #2f6f6b;         /* secondary accent — tags, hover states */
+  --teal-soft: rgba(47, 111, 107, 0.14);
+  --slate: #5b6470;        /* muted text */
+  --coral: #d1573f;        /* live badge, danger, delete */
+  --coral-soft: rgba(209, 87, 63, 0.14);
+  --line: rgba(16, 21, 27, 0.1);
+  --line-on-ink: rgba(246, 243, 236, 0.14);
+
+  /* Type */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Layout */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --maxw: 1180px;
+  --shadow-card: 0 1px 2px rgba(16,21,27,0.04), 0 8px 24px rgba(16,21,27,0.06);
+  --shadow-lift: 0 12px 32px rgba(16,21,27,0.16);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--ink);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: var(--paper);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.4em;
+  color: var(--ink);
+}
+
+p { line-height: 1.65; margin: 0 0 1em; color: #2a2f36; }
+
+a { color: inherit; text-decoration: none; }
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+::selection { background: var(--amber-soft); }
+
+/* Focus visibility kept everywhere — never suppressed */
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+/* Reusable building blocks ------------------------------------------ */
+
+.wb-container {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.wb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  font-size: 14.5px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.wb-btn:active { transform: translateY(1px); }
+
+.wb-btn--primary {
+  background: var(--amber);
+  color: #1a1206;
+}
+.wb-btn--primary:hover { box-shadow: 0 6px 18px rgba(232,163,61,0.4); }
+
+.wb-btn--ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+.wb-btn--ghost:hover { background: rgba(16,21,27,0.04); }
+
+.wb-btn--ink {
+  background: var(--ink);
+  color: var(--paper);
+}
+.wb-btn--ink:hover { box-shadow: var(--shadow-lift); }
+
+.wb-tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.wb-card {
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--line);
+}
+
+.wb-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--slate);
+}
+
+@media (max-width: 720px) {
+  .wb-container { padding: 0 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}

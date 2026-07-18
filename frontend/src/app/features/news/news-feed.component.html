@@ -1,0 +1,33 @@
+<div class="wb-container gk">
+  <header class="gk__head">
+    <span class="wb-eyebrow">General knowledge</span>
+    <h1>The GK Wire</h1>
+    <p>Live headlines from around the web. Click any story to read the full piece on the publisher's own site — we only ever show the headline here.</p>
+  </header>
+
+  <div class="gk__tabs">
+    <button *ngFor="let c of categories" [class.active]="c === activeCategory" (click)="selectCategory(c)">
+      {{ c }}
+    </button>
+  </div>
+
+  <ul class="gk__list" *ngIf="!loading; else loadingTpl">
+    <li class="gk__item" *ngFor="let h of headlines" (click)="open(h.sourceUrl)">
+      <div class="gk__thumb" *ngIf="h.imageUrl" [style.backgroundImage]="'url(' + h.imageUrl + ')'"></div>
+      <div class="gk__thumb gk__thumb--placeholder" *ngIf="!h.imageUrl">📰</div>
+      <div class="gk__text">
+        <span class="gk__source">{{ h.sourceName }}</span>
+        <h3 class="gk__title">{{ h.title }}</h3>
+        <span class="gk__link">Read on {{ h.sourceName }} ↗</span>
+      </div>
+    </li>
+  </ul>
+
+  <ng-template #loadingTpl>
+    <div class="gk__loading">Pulling the latest headlines…</div>
+  </ng-template>
+
+  <p class="gk__empty" *ngIf="!loading && !headlines.length">
+    No headlines cached yet — once the backend's news API key is configured, live stories will appear here automatically.
+  </p>
+</div>

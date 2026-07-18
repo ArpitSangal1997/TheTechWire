@@ -1,0 +1,101 @@
+﻿<article class="wb-container post" *ngIf="post">
+
+  <header class="post__head">
+    <span class="wb-tag" *ngFor="let tag of post.tags">{{ tag }}</span>
+    <h1 class="post__title">{{ post.title }}</h1>
+    <div class="post__meta">
+      <span class="post__author">{{ post.author.displayName }} <span class="post__handle">{{ '@' + post.author.handle }}</span></span>
+      <span class="dot-sep">.</span>
+      <span>{{ post.viewCount }} views</span>
+      <span class="dot-sep">.</span>
+      <span>{{ post.commentCount }} comments</span>
+      <button class="post__share-btn" (click)="showShare = true">Share ({{ post.shareCount }})</button>
+    </div>
+  </header>
+
+  <div class="post__cover" *ngIf="post.coverImageUrl" [style.backgroundImage]="'url(' + post.coverImageUrl + ')'"></div>
+
+  <div class="post__content" [innerHTML]="post.content"></div>
+
+  <aside class="post-ad wb-card" *ngFor="let ad of inlineAds">
+    <a [href]="ad.targetUrl" (click)="openAd(ad, $event)">
+      <img *ngIf="ad.creativeImageUrl" [src]="ad.creativeImageUrl" [alt]="ad.headline" />
+      <div>
+        <span class="wb-tag">Sponsored</span>
+        <h3>{{ ad.headline }}</h3>
+        <p>{{ ad.brandName }}</p>
+      </div>
+    </a>
+  </aside>
+
+  <section class="comments">
+    <h2 class="comments__head">{{ post.commentCount }} comments</h2>
+
+    <div class="composer" *ngIf="auth.isLoggedIn(); else signInPrompt">
+      <textarea [(ngModel)]="newComment" placeholder="Add to the conversation..." rows="3"></textarea>
+      <button class="wb-btn wb-btn--primary" (click)="submitComment()" [disabled]="posting || !newComment.trim()">
+        {{ posting ? 'Posting...' : 'Post comment' }}
+      </button>
+    </div>
+    <ng-template #signInPrompt>
+      <p class="comments__signin">
+        <a routerLink="/login">Sign in</a> to join the conversation.
+      </p>
+    </ng-template>
+
+    <ul class="thread">
+      <li class="comment" *ngFor="let c of comments">
+        <div class="comment__row">
+          <div class="comment__avatar">{{ c.author.displayName.charAt(0) }}</div>
+          <div class="comment__main">
+            <div class="comment__byline">
+              <strong>{{ c.author.displayName }}</strong>
+              <span class="comment__handle">{{ '@' + c.author.handle }}</span>
+            </div>
+            <p class="comment__body">{{ c.body }}</p>
+            <div class="comment__actions">
+              <button *ngIf="auth.isLoggedIn()" (click)="startReply(c)">Reply</button>
+              <button *ngIf="canDelete(c)" class="comment__danger" (click)="deleteComment(c)">Delete</button>
+            </div>
+
+            <div class="reply-box" *ngIf="replyTo?.id === c.id">
+              <textarea [(ngModel)]="replyBody" rows="2" placeholder="Write a reply..."></textarea>
+              <div class="reply-box__actions">
+                <button class="wb-btn wb-btn--ghost" (click)="cancelReply()">Cancel</button>
+                <button class="wb-btn wb-btn--primary" (click)="submitReply()" [disabled]="!replyBody.trim()">Reply</button>
+              </div>
+            </div>
+
+            <ul class="thread thread--nested" *ngIf="c.replies.length">
+              <li class="comment" *ngFor="let r of c.replies">
+                <div class="comment__row">
+                  <div class="comment__avatar">{{ r.author.displayName.charAt(0) }}</div>
+                  <div class="comment__main">
+                    <div class="comment__byline">
+                      <strong>{{ r.author.displayName }}</strong>
+                      <span class="comment__handle">{{ '@' + r.author.handle }}</span>
+                    </div>
+                    <p class="comment__body">{{ r.body }}</p>
+                    <div class="comment__actions">
+                      <button *ngIf="canDelete(r)" class="comment__danger" (click)="deleteComment(r)">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <p class="comments__empty" *ngIf="!comments.length">No comments yet - start the conversation.</p>
+  </section>
+</article>
+
+<wb-share-dialog
+  *ngIf="showShare && post"
+  [postId]="post.id"
+  [slug]="post.slug"
+  [title]="post.title"
+  (closed)="showShare = false">
+</wb-share-dialog>

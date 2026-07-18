@@ -1,0 +1,40 @@
+<header class="masthead">
+  <div class="wb-container masthead__row">
+    <a routerLink="/" class="masthead__brand">
+      <span class="masthead__mark">W</span>
+      <span class="masthead__word">The&nbsp;TechWire</span>
+    </a>
+
+    <nav class="masthead__links">
+      <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{exact:true}">Front Page</a>
+      <a routerLink="/gk" routerLinkActive="is-active">GK Wire</a>
+      <a *ngIf="auth.isLoggedIn()" routerLink="/my-stories" routerLinkActive="is-active">My stories</a>
+      <a *ngIf="auth.isLoggedIn()" routerLink="/write" routerLinkActive="is-active">Write</a>
+      <a *ngIf="auth.isAdmin()" routerLink="/admin" routerLinkActive="is-active">Admin</a>
+    </nav>
+
+    <div class="masthead__actions">
+      <ng-container *ngIf="!auth.isLoggedIn(); else loggedIn">
+        <a routerLink="/login" class="wb-btn wb-btn--ghost masthead__ghost">Sign in</a>
+        <a routerLink="/register" class="wb-btn wb-btn--primary">Join free</a>
+      </ng-container>
+      <ng-template #loggedIn>
+        <div class="notifications">
+          <button class="notifications__button" type="button" (click)="toggleNotifications()" aria-label="Notifications">
+            <span aria-hidden="true">&#128276;</span>
+            <span class="notifications__badge" *ngIf="unreadCount">{{ unreadCount }}</span>
+          </button>
+          <div class="notifications__panel wb-card" *ngIf="notificationsOpen">
+            <strong>Notifications</strong>
+            <a *ngFor="let item of notifications" [routerLink]="item.link || '/'" (click)="notificationsOpen = false">
+              {{ item.message }}
+            </a>
+            <p *ngIf="!notifications.length">Nothing new yet.</p>
+          </div>
+        </div>
+        <span class="masthead__hello">Hi, {{ auth.currentUser()?.displayName }}</span>
+        <button class="wb-btn wb-btn--ghost masthead__ghost" (click)="logout()">Sign out</button>
+      </ng-template>
+    </div>
+  </div>
+</header>

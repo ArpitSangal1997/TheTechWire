@@ -1,0 +1,46 @@
+<section class="wb-container stories">
+  <header class="stories__head">
+    <div>
+      <span class="wb-eyebrow">Author desk</span>
+      <h1>My stories</h1>
+    </div>
+    <a routerLink="/write" class="wb-btn wb-btn--primary">Write</a>
+  </header>
+
+  <p class="stories__error" *ngIf="error">{{ error }}</p>
+  <p class="stories__loading" *ngIf="loading && !posts.length">Loading stories...</p>
+
+  <div class="stories__list" *ngIf="posts.length">
+    <article class="story wb-card" *ngFor="let post of posts">
+      <div>
+        <span class="wb-tag">{{ post.status }}</span>
+        <h2>{{ post.title }}</h2>
+        <p>{{ post.excerpt || 'No excerpt yet.' }}</p>
+      </div>
+      <div class="story__meta">
+        <span>{{ post.viewCount }} views</span>
+        <span>{{ post.commentCount }} comments</span>
+        <span>{{ post.shareCount }} shares</span>
+      </div>
+      <div class="story__actions">
+        <a class="wb-btn wb-btn--ghost" [routerLink]="['/write', post.id]">Edit</a>
+        <a *ngIf="post.status === 'PUBLISHED'" class="wb-btn wb-btn--ghost" [routerLink]="['/post', post.slug]">View</a>
+        <button *ngIf="post.status !== 'PUBLISHED'" class="wb-btn wb-btn--primary" (click)="publish(post)" [disabled]="workingId === post.id">Publish</button>
+        <button *ngIf="post.status !== 'ARCHIVED'" class="wb-btn wb-btn--ghost" (click)="archive(post)" [disabled]="workingId === post.id">Archive</button>
+        <button class="wb-btn wb-btn--danger" (click)="delete(post)" [disabled]="workingId === post.id">Delete</button>
+      </div>
+    </article>
+  </div>
+
+  <div class="stories__empty" *ngIf="!loading && !posts.length">
+    <h2>No stories yet</h2>
+    <p>Drafts and published posts will appear here.</p>
+    <a routerLink="/write" class="wb-btn wb-btn--primary">Write your first story</a>
+  </div>
+
+  <div class="stories__more" *ngIf="hasMore">
+    <button class="wb-btn wb-btn--ghost" (click)="loadMore()" [disabled]="loading">
+      {{ loading ? 'Loading...' : 'Load more' }}
+    </button>
+  </div>
+</section>

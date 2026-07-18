@@ -1,0 +1,92 @@
+﻿<div class="wb-container front">
+
+  <!-- HERO: featured story -->
+  <a class="hero" *ngIf="featured" [routerLink]="['/post', featured.slug]">
+    <div class="hero__media" [style.backgroundImage]="featured.coverImageUrl ? 'url(' + featured.coverImageUrl + ')' : null">
+      <span class="hero__badge wb-eyebrow">Front page</span>
+    </div>
+    <div class="hero__body">
+      <span class="wb-tag" *ngIf="featured.tags[0]">{{ featured.tags[0] }}</span>
+      <h1 class="hero__title">{{ featured.title }}</h1>
+      <p class="hero__excerpt">{{ featured.excerpt }}</p>
+      <div class="hero__meta">
+        <span>{{ featured.author.displayName }}</span>
+        <span class="dot-sep">.</span>
+        <span>{{ featured.commentCount }} comments</span>
+        <span class="dot-sep">.</span>
+        <span>{{ featured.shareCount }} shares</span>
+      </div>
+    </div>
+  </a>
+
+  <div class="home-layout">
+    <div class="home-main">
+      <div class="grid-head">
+        <h2>Recent stories</h2>
+      </div>
+
+      <div class="ad-stack" *ngIf="feedAds.length">
+        <article class="ad-card wb-card" *ngFor="let ad of feedAds">
+          <a [href]="ad.targetUrl" (click)="openAd(ad, $event)">
+            <img *ngIf="ad.creativeImageUrl" [src]="ad.creativeImageUrl" [alt]="ad.headline" />
+            <div class="ad-card__body">
+              <span class="wb-tag">Sponsored</span>
+              <h3>{{ ad.headline }}</h3>
+              <p>{{ ad.brandName }}</p>
+            </div>
+          </a>
+        </article>
+      </div>
+
+      <div class="grid" *ngIf="!loading || posts.length">
+        <article class="card wb-card" *ngFor="let post of posts">
+          <a [routerLink]="['/post', post.slug]" class="card__media" [style.backgroundImage]="post.coverImageUrl ? 'url(' + post.coverImageUrl + ')' : null"></a>
+          <div class="card__body">
+            <span class="wb-tag" *ngIf="post.tags[0]">{{ post.tags[0] }}</span>
+            <a [routerLink]="['/post', post.slug]" class="card__title-link">
+              <h3 class="card__title">{{ post.title }}</h3>
+            </a>
+            <p class="card__excerpt">{{ post.excerpt }}</p>
+            <div class="card__foot">
+              <span class="card__author">{{ post.author.displayName }}</span>
+              <button class="card__share" (click)="openShare(post, $event)" title="Share">Share</button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <aside class="home-sidebar" *ngIf="sidebarAds.length">
+      <div class="sidebar-ad wb-card" *ngFor="let ad of sidebarAds">
+        <a [href]="ad.targetUrl" (click)="openAd(ad, $event)">
+          <img *ngIf="ad.creativeImageUrl" [src]="ad.creativeImageUrl" [alt]="ad.headline" />
+          <div class="sidebar-ad__body">
+            <span class="wb-tag">Sponsor</span>
+            <h3>{{ ad.headline }}</h3>
+            <p>{{ ad.brandName }}</p>
+          </div>
+        </a>
+      </div>
+    </aside>
+  </div>
+
+  <div class="empty" *ngIf="!loading && !posts.length && !featured">
+    <h3>No stories yet</h3>
+    <p>This is where published posts will show up. Be the first to write one.</p>
+    <a routerLink="/write" class="wb-btn wb-btn--primary">Write a post</a>
+  </div>
+
+  <div class="loadmore" *ngIf="hasMore">
+    <button class="wb-btn wb-btn--ghost" (click)="loadMore()" [disabled]="loading">
+      {{ loading ? 'Loading...' : 'Load more stories' }}
+    </button>
+  </div>
+</div>
+
+<wb-share-dialog
+  *ngIf="activeShare"
+  [postId]="activeShare.id"
+  [slug]="activeShare.slug"
+  [title]="activeShare.title"
+  (closed)="activeShare = undefined">
+</wb-share-dialog>

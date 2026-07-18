@@ -1,0 +1,38 @@
+<div class="auth">
+  <div class="auth__card wb-card">
+    <div class="auth__head">
+      <h1>Join The Wire</h1>
+      <p>Write stories, comment, and share — free.</p>
+    </div>
+
+    <p class="auth__error" *ngIf="error">{{ error }}</p>
+
+    <div class="auth__field">
+      <label>Display name</label>
+      <input [(ngModel)]="displayName" placeholder="Jane Doe" />
+    </div>
+    <div class="auth__field">
+      <label>Handle</label>
+      <input [(ngModel)]="handle" placeholder="janedoe" />
+    </div>
+    <div class="auth__field">
+      <label>Email</label>
+      <input type="email" [(ngModel)]="email" placeholder="you@example.com" />
+    </div>
+    <div class="auth__field">
+      <label>Avatar</label>
+      <input type="file" accept="image/*" (change)="uploadAvatar($event)" />
+      <p *ngIf="avatarUrl" class="auth__hint">Avatar ready to use.</p>
+    </div>
+    <div class="auth__field">
+      <label>Password</label>
+      <input type="password" [(ngModel)]="password" placeholder="At least 8 characters" (keyup.enter)="submit()" />
+    </div>
+
+    <button class="wb-btn wb-btn--primary auth__submit" (click)="submit()" [disabled]="loading">
+      {{ loading ? 'Creating account…' : 'Create account' }}
+    </button>
+
+    <p class="auth__switch">Already on The Wire? <a routerLink="/login">Sign in</a></p>
+  </div>
+</div>

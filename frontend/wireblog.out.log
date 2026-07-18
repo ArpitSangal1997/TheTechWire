@@ -1,0 +1,38 @@
+
+> wireblog-frontend@1.0.0 start
+> ng serve --host 127.0.0.1
+
+Initial chunk files | Names                     |  Raw size
+polyfills.js        | polyfills                 |  88.09 kB | 
+main.js             | main                      |  28.90 kB | 
+styles.css          | styles                    |  27.44 kB | 
+chunk-CE4WAH5V.js   | -                         |   2.06 kB | 
+chunk-WGO7K5WG.js   | -                         |   1.34 kB | 
+chunk-AZKP7HSQ.js   | -                         |   1.05 kB | 
+chunk-EDLFZHRY.js   | -                         | 852 bytes | 
+
+                    | Initial total             | 149.71 kB
+
+Lazy chunk files    | Names                     |  Raw size
+chunk-ISWXDKFN.js   | post-detail-component     |  27.76 kB | 
+chunk-WOWS3LST.js   | admin-dashboard-component |  23.48 kB | 
+chunk-VFAGWZFT.js   | home-component            |  21.00 kB | 
+chunk-3HBY73FV.js   | post-editor-component     |  13.50 kB | 
+chunk-VGRTESYH.js   | account-action-component  |  11.49 kB | 
+chunk-WO3F63MN.js   | -                         |   9.97 kB | 
+chunk-ZUPO6AUK.js   | register-component        |   9.95 kB | 
+chunk-TMZ7PMEM.js   | news-feed-component       |   9.51 kB | 
+chunk-3A7HWA46.js   | login-component           |   7.12 kB | 
+chunk-I6JP2XAF.js   | -                         |   1.53 kB | 
+chunk-YDYHZGLF.js   | -                         | 849 bytes | 
+
+Application bundle generation complete. [21.839 seconds]
+
+Watch mode enabled. Watching for file changes...
+  ➜  Local:   http://127.0.0.1:4200/
+Initial chunk files | Names | Raw size
+main.js             | main  | 28.91 kB | 
+
+Application bundle generation complete. [11.055 seconds]
+
+Page reload sent to client(s).

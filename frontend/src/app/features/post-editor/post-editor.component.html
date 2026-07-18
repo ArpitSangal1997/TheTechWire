@@ -1,0 +1,33 @@
+﻿<div class="wb-container editor">
+  <h1 class="editor__head">{{ postId ? 'Edit story' : 'Write a new story' }}</h1>
+
+  <p class="editor__error" *ngIf="error">{{ error }}</p>
+
+  <p *ngIf="loading">Loading story...</p>
+
+  <input class="editor__title" [(ngModel)]="title" placeholder="Your headline" maxlength="220" />
+
+  <input class="editor__field" [(ngModel)]="excerpt" placeholder="One-line summary readers see on the front page (optional)" maxlength="500" />
+
+  <div class="editor__field editor__field--row">
+    <input [(ngModel)]="coverImageUrl" placeholder="Cover image URL or upload below" />
+    <label class="editor__upload">
+      <input type="file" accept="image/*" (change)="uploadCoverImage($event)" />
+      <span>{{ uploading ? 'Uploading...' : 'Upload image' }}</span>
+    </label>
+  </div>
+
+  <input class="editor__field" [(ngModel)]="tagsInput" placeholder="Tags, comma separated - e.g. travel, opinion" />
+
+  <div #editor class="editor__body"></div>
+
+  <div class="editor__bar">
+    <span class="editor__count">{{ wordCount }} words</span>
+    <div class="editor__actions">
+      <button class="wb-btn wb-btn--ghost" (click)="save(false)" [disabled]="saving || loading">Save draft</button>
+      <button class="wb-btn wb-btn--primary" (click)="save(true)" [disabled]="saving || loading">
+        {{ saving ? 'Publishing...' : 'Publish' }}
+      </button>
+    </div>
+  </div>
+</div>

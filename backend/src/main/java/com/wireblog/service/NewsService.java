@@ -1,0 +1,258 @@
+package com.wireblog.service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wireblog.dto.NewsHeadlineResponse;
+import com.wireblog.model.NewsHeadline;
+import com.wireblog.repository.NewsHeadlineRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * GK / news section. Pulls live headlines from an external provider (NewsAPI.org
+ * by default — swap the base URL + mapping below for GNews, NewsData.io, etc.)
+ * and caches them locally so the site stays fast and works even if the
+ * provider is briefly down. Only headline + source link is ever shown —
+ * full articles always open on the original publisher's site.
+ */
+@Service
+public class NewsService {
+
+    private static final Logger log = LoggerFactory.getLogger(NewsService.class);
+    private static final List<String> SUPPORTED_CATEGORIES = List.of("general", "business", "technology", "sports", "science", "health");
+
+    private final NewsHeadlineRepository repository;
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    @Value("${app.news.api-key:}")
+    private String apiKey;
+
+    @Value("${app.news.base-url:https://newsapi.org/v2/top-headlines}")
+    private String baseUrl;
+
+    @Value("${app.news.fallback-url:https://newsapi.org/v2/everything}")
+    private String fallbackUrl;
+
+    @Value("${app.news.query:india}")
+    private String query;
+
+    @Value("${app.news.country:in}")
+    private String country;
+
+    public NewsService(NewsHeadlineRepository repository) {
+        this.repository = repository;
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void refreshOnStartup() {
+        refresh();
+    }
+
+    /** Refresh cached headlines every 15 minutes. */
+    @Scheduled(fixedRate = 15 * 60 * 1000)
+    @Transactional
+    public void refresh() {
+        if (!hasApiKey()) {
+            log.warn("app.news.api-key is not set — using cached headlines only.");
+            return;
+        }
+        try {
+            int saved = 0;
+            for (String category : SUPPORTED_CATEGORIES) {
+                saved += refreshCategory(category);
+            }
+
+            repository.deleteByFetchedAtBefore(Instant.now().minus(3, ChronoUnit.DAYS));
+
+            if (saved == 0 && repository.findTop50ByOrderByPublishedAtDesc().isEmpty()) {
+                log.info("Top headlines returned no usable articles; trying fallback news search for query='{}'.", query);
+                refreshFromUrl(fallbackSearchUrl(null), "fallback search", "general");
+            }
+
+            log.info("Refreshed news headlines. Cached headline count now {}.", repository.findTop50ByOrderByPublishedAtDesc().size());
+        } catch (HttpStatusCodeException e) {
+            log.error("Failed to refresh news headlines: provider HTTP {} body={}", e.getStatusCode(), e.getResponseBodyAsString());
+        } catch (Exception e) {
+            log.error("Failed to refresh news headlines", e);
+        }
+    }
+
+    public List<NewsHeadlineResponse> latest() {
+        List<NewsHeadline> headlines = repository.findTop50ByOrderByPublishedAtDesc();
+        if (headlines.isEmpty() && hasApiKey()) {
+            refresh();
+            headlines = repository.findTop50ByOrderByPublishedAtDesc();
+        }
+        if (!headlines.isEmpty()) {
+            return headlines.stream().map(this::toResponse).toList();
+        }
+        return List.of(
+                new NewsHeadlineResponse(0L, "No live headlines available yet", "#", "The Wire", null, "general", Instant.now())
+        );
+    }
+
+    public List<NewsHeadlineResponse> byCategory(String category) {
+        List<NewsHeadline> headlines = repository.findTop50ByCategoryOrderByPublishedAtDesc(category);
+        if (headlines.isEmpty() && hasApiKey()) {
+            try {
+                refreshCategory(category);
+                headlines = repository.findTop50ByCategoryOrderByPublishedAtDesc(category);
+            } catch (Exception e) {
+                log.warn("Could not refresh category {}", category, e);
+            }
+        }
+        if (!headlines.isEmpty()) {
+            return headlines.stream().map(this::toResponse).toList();
+        }
+        return List.of();
+    }
+
+    private int refreshCategory(String category) throws Exception {
+        String url = topHeadlinesUrl(category);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.USER_AGENT, "WireBlog/1.0");
+        ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        JsonNode root = mapper.readTree(resp.getBody());
+        String status = textOrNull(root, "status");
+        if (status != null && !"ok".equalsIgnoreCase(status)) {
+            log.error("News provider returned status={} body={}", status, resp.getBody());
+            return 0;
+        }
+        JsonNode articles = root.get("articles");
+        if (articles == null || !articles.isArray() || articles.isEmpty()) {
+            log.warn("News provider response had no articles for category {}. body={}", category, resp.getBody());
+            return refreshFromUrl(fallbackSearchUrl(category), "fallback search", category);
+        }
+
+        Set<String> existingUrls = new HashSet<>();
+        repository.findTop50ByCategoryOrderByPublishedAtDesc(category).forEach(h -> existingUrls.add(h.getSourceUrl()));
+
+        int saved = 0;
+        for (JsonNode a : articles) {
+            String title = textOrNull(a, "title");
+            String sourceUrl = textOrNull(a, "url");
+            if (title == null || title.isBlank() || sourceUrl == null || sourceUrl.isBlank()) continue;
+            if (!existingUrls.add(sourceUrl)) continue;
+
+            NewsHeadline headline = NewsHeadline.builder()
+                    .title(title)
+                    .sourceUrl(sourceUrl)
+                    .sourceName(a.has("source") ? textOrNull(a.get("source"), "name") : "Unknown")
+                    .imageUrl(textOrNull(a, "urlToImage"))
+                    .category(category)
+                    .publishedAt(parsePublishedAt(textOrNull(a, "publishedAt")))
+                    .build();
+            repository.save(headline);
+            saved++;
+        }
+
+        return saved;
+    }
+
+    private int refreshFromUrl(String url, String source, String category) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.USER_AGENT, "WireBlog/1.0");
+        ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        JsonNode root = mapper.readTree(resp.getBody());
+        String status = textOrNull(root, "status");
+        if (status != null && !"ok".equalsIgnoreCase(status)) {
+            log.error("News provider {} returned status={} body={}", source, status, resp.getBody());
+            return 0;
+        }
+        JsonNode articles = root.get("articles");
+        if (articles == null || !articles.isArray()) {
+            log.warn("News provider {} response had no articles array. body={}", source, resp.getBody());
+            return 0;
+        }
+
+        Set<String> existingUrls = new HashSet<>();
+        repository.findTop50ByCategoryOrderByPublishedAtDesc(category).forEach(h -> existingUrls.add(h.getSourceUrl()));
+
+        int saved = 0;
+        for (JsonNode a : articles) {
+            String title = textOrNull(a, "title");
+            String sourceUrl = textOrNull(a, "url");
+            if (title == null || title.isBlank() || sourceUrl == null || sourceUrl.isBlank()) continue;
+            if (!existingUrls.add(sourceUrl)) continue;
+
+            NewsHeadline headline = NewsHeadline.builder()
+                    .title(title)
+                    .sourceUrl(sourceUrl)
+                    .sourceName(a.has("source") ? textOrNull(a.get("source"), "name") : "Unknown")
+                    .imageUrl(textOrNull(a, "urlToImage"))
+                    .category(category)
+                    .publishedAt(parsePublishedAt(textOrNull(a, "publishedAt")))
+                    .build();
+            repository.save(headline);
+            saved++;
+        }
+
+        log.info("News provider {} returned {} articles and saved {} new headlines.", source, articles.size(), saved);
+        return saved;
+    }
+
+    private String topHeadlinesUrl(String category) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .queryParam("country", country)
+                .queryParam("pageSize", 50)
+                .queryParam("apiKey", apiKey);
+        if (!"general".equalsIgnoreCase(category)) {
+            builder.queryParam("category", category);
+        }
+        return builder.toUriString();
+    }
+
+    private String fallbackSearchUrl(String category) {
+        String searchQuery = (category == null || category.isBlank()) ? query : category;
+        return UriComponentsBuilder.fromHttpUrl(fallbackUrl)
+                .queryParam("q", searchQuery)
+                .queryParam("language", "en")
+                .queryParam("sortBy", "publishedAt")
+                .queryParam("pageSize", 50)
+                .queryParam("apiKey", apiKey)
+                .toUriString();
+    }
+
+    private String textOrNull(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return (v == null || v.isNull()) ? null : v.asText();
+    }
+
+    private Instant parsePublishedAt(String iso) {
+        try {
+            return iso == null ? Instant.now() : OffsetDateTime.parse(iso).toInstant();
+        } catch (Exception e) {
+            return Instant.now();
+        }
+    }
+
+    private NewsHeadlineResponse toResponse(NewsHeadline h) {
+        return new NewsHeadlineResponse(h.getId(), h.getTitle(), h.getSourceUrl(), h.getSourceName(),
+                h.getImageUrl(), h.getCategory(), h.getPublishedAt());
+    }
+
+    private boolean hasApiKey() {
+        return apiKey != null && !apiKey.isBlank();
+    }
+}

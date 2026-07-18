@@ -1,0 +1,33 @@
+<div class="wire" *ngIf="headlines.length">
+  <div class="wire__label">
+    <span class="dot" aria-hidden="true"></span>
+    <span>LIVE&nbsp;WIRE</span>
+  </div>
+  <div class="wire__track">
+    <div class="wire__scroller">
+      <ng-container *ngIf="tickerAds.length">
+        <a class="wire__item" *ngFor="let ad of tickerAds" [href]="ad.targetUrl" (click)="openAd(ad, $event)">
+          <span class="wire__source">Sponsored</span>
+          <span class="wire__title">{{ ad.headline }}</span>
+        </a>
+        <span class="wire__sep">/</span>
+      </ng-container>
+      <ng-container *ngFor="let h of headlines">
+        <button class="wire__item" (click)="open(h.sourceUrl)" [title]="h.sourceName">
+          <span class="wire__source">{{ h.sourceName }}</span>
+          <span class="wire__title">{{ h.title }}</span>
+        </button>
+        <span class="wire__sep">/</span>
+      </ng-container>
+      <!-- duplicate for seamless loop -->
+      <ng-container *ngFor="let h of headlines">
+        <button class="wire__item" (click)="open(h.sourceUrl)" [title]="h.sourceName">
+          <span class="wire__source">{{ h.sourceName }}</span>
+          <span class="wire__title">{{ h.title }}</span>
+        </button>
+        <span class="wire__sep">/</span>
+      </ng-container>
+    </div>
+  </div>
+  <a class="wire__more" routerLink="/gk">More GK →</a>
+</div>
