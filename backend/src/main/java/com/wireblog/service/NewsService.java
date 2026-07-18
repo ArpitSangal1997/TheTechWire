@@ -108,7 +108,7 @@ public class NewsService {
             return headlines.stream().map(this::toResponse).toList();
         }
         return List.of(
-                new NewsHeadlineResponse(0L, "No live headlines available yet", "#", "The Wire", null, "general", Instant.now())
+                new NewsHeadlineResponse(0L, "No live headlines available yet", "#", "TheTechWire", null, "general", Instant.now())
         );
     }
 

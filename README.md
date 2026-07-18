@@ -1,6 +1,6 @@
-﻿# The Wire
+﻿# TheTechWire
 
-The Wire is a full-stack publishing platform for writers, readers, and admins. It includes a public blog feed, author workspace, threaded comments, sharing, notifications, sponsorship placements, and a GK news experience powered by the News API.
+TheTechWire is a full-stack publishing platform for writers, readers, and admins. It includes a public blog feed, author workspace, threaded comments, sharing, notifications, sponsorship placements, and a GK news experience powered by the News API.
 
 ## Project structure
 
