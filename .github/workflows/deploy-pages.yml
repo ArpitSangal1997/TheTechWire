@@ -33,13 +33,13 @@ jobs:
         working-directory: frontend
         run: npm run build -- --base-href /TheTechWire/
       - name: Support client-side routes on Pages
-        run: cp frontend/dist/wireblog-frontend/index.html frontend/dist/wireblog-frontend/404.html
+        run: cp frontend/dist/wireblog-frontend/browser/index.html frontend/dist/wireblog-frontend/browser/404.html
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: frontend/dist/wireblog-frontend
+          path: frontend/dist/wireblog-frontend/browser
 
   deploy:
     environment:
