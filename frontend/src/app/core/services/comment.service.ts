@@ -21,4 +21,8 @@ export class CommentService {
   delete(commentId: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${commentId}`);
   }
+
+  flag(commentId: number): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${commentId}/flag`, {});
+  }
 }

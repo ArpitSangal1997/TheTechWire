@@ -56,6 +56,7 @@
             <div class="comment__actions">
               <button *ngIf="auth.isLoggedIn()" (click)="startReply(c)">Reply</button>
               <button *ngIf="canDelete(c)" class="comment__danger" (click)="deleteComment(c)">Delete</button>
+              <button *ngIf="auth.isLoggedIn() && !canDelete(c)" (click)="reportComment(c)">Report</button>
             </div>
 
             <div class="reply-box" *ngIf="replyTo?.id === c.id">
@@ -78,6 +79,7 @@
                     <p class="comment__body">{{ r.body }}</p>
                     <div class="comment__actions">
                       <button *ngIf="canDelete(r)" class="comment__danger" (click)="deleteComment(r)">Delete</button>
+                      <button *ngIf="auth.isLoggedIn() && !canDelete(r)" (click)="reportComment(r)">Report</button>
                     </div>
                   </div>
                 </div>

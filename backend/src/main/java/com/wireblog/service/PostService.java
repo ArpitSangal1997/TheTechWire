@@ -10,15 +10,26 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 
 import java.text.Normalizer;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
 import java.util.regex.Pattern;
 
 @Service
 public class PostService {
+
+    private static final Safelist POST_HTML = Safelist.relaxed()
+            .removeTags("style")
+            .removeAttributes("a", "target")
+            .addProtocols("a", "href", "http", "https", "mailto")
+            .addProtocols("img", "src", "http", "https");
 
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
@@ -39,7 +50,7 @@ public class PostService {
                 .title(req.title())
                 .slug(uniqueSlug(req.title()))
                 .excerpt(req.excerpt())
-                .content(req.content())
+                .content(sanitizeContent(req.content()))
                 .coverImageUrl(req.coverImageUrl())
                 .tags(req.tags())
                 .author(author)
@@ -63,7 +74,7 @@ public class PostService {
 
         post.setTitle(req.title());
         post.setExcerpt(req.excerpt());
-        post.setContent(req.content());
+        post.setContent(sanitizeContent(req.content()));
         post.setCoverImageUrl(req.coverImageUrl());
         post.setTags(req.tags());
 
@@ -98,18 +109,17 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public Page<PostSummaryResponse> listPublished(Pageable pageable) {
-        return postRepository.findByStatus(Post.PostStatus.PUBLISHED, pageable).map(this::toSummary);
+        return summarize(postRepository.findByStatus(Post.PostStatus.PUBLISHED, pageable));
     }
 
     @Transactional(readOnly = true)
     public Page<PostSummaryResponse> listByTag(String tag, Pageable pageable) {
-        return postRepository.findByTagsContainingAndStatus(tag, Post.PostStatus.PUBLISHED, pageable).map(this::toSummary);
+        return summarize(postRepository.findByTagsContainingAndStatus(tag, Post.PostStatus.PUBLISHED, pageable));
     }
 
     @Transactional(readOnly = true)
     public Page<PostSummaryResponse> search(String query, Pageable pageable) {
-        return postRepository.findByTitleContainingIgnoreCaseAndStatus(query, Post.PostStatus.PUBLISHED, pageable)
-                .map(this::toSummary);
+        return summarize(postRepository.findByTitleContainingIgnoreCaseAndStatus(query, Post.PostStatus.PUBLISHED, pageable));
     }
 
     @Transactional(readOnly = true)
@@ -168,8 +178,26 @@ public class PostService {
         return slug.isBlank() ? "post-" + System.currentTimeMillis() : slug;
     }
 
+    private String sanitizeContent(String content) {
+        return Jsoup.clean(content, POST_HTML);
+    }
+
     private PostSummaryResponse toSummary(Post p) {
         long commentCount = commentRepository.countByPostId(p.getId());
+        return new PostSummaryResponse(p.getId(), p.getTitle(), p.getSlug(), p.getExcerpt(), p.getCoverImageUrl(),
+                copyTags(p), p.getStatus().name(), toAuthor(p.getAuthor()), p.getViewCount(), p.getShareCount(),
+                commentCount, p.getPublishedAt());
+    }
+
+    private Page<PostSummaryResponse> summarize(Page<Post> posts) {
+        List<Long> ids = posts.getContent().stream().map(Post::getId).toList();
+        Map<Long, Long> counts = new HashMap<>();
+        if (!ids.isEmpty()) commentRepository.countGroupedByPostIds(ids)
+                .forEach(row -> counts.put((Long) row[0], (Long) row[1]));
+        return posts.map(p -> toSummary(p, counts.getOrDefault(p.getId(), 0L)));
+    }
+
+    private PostSummaryResponse toSummary(Post p, long commentCount) {
         return new PostSummaryResponse(p.getId(), p.getTitle(), p.getSlug(), p.getExcerpt(), p.getCoverImageUrl(),
                 copyTags(p), p.getStatus().name(), toAuthor(p.getAuthor()), p.getViewCount(), p.getShareCount(),
                 commentCount, p.getPublishedAt());

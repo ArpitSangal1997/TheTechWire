@@ -99,6 +99,10 @@ export class PostDetailComponent implements OnInit {
     this.commentService.delete(comment.id).subscribe(() => this.loadComments());
   }
 
+  reportComment(comment: CommentItem): void {
+    this.commentService.flag(comment.id).subscribe();
+  }
+
   canDelete(comment: CommentItem): boolean {
     const me = this.auth.currentUser();
     return !!me && (me.userId === comment.author.id || me.role === 'ADMIN');

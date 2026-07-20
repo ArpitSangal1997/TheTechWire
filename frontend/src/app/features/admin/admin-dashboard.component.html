@@ -107,3 +107,22 @@
     </div>
   </div>
 </div>
+
+<div class="wb-container admin admin__moderation">
+  <header class="admin__head"><div><span class="wb-eyebrow">Trust & safety</span><h2>Moderation</h2><p>Review flagged comments and suspend abusive accounts.</p></div></header>
+  <section class="wb-card admin__panel">
+    <h3>Flagged comments ({{ flaggedComments.length }})</h3>
+    <p *ngIf="!flaggedComments.length" class="admin__empty">No flagged comments.</p>
+    <div class="moderation-row" *ngFor="let c of flaggedComments">
+      <div><strong>{{ c.author.displayName }}</strong> <span class="comment__handle">{{ '@' + c.author.handle }}</span><p>{{ c.body }}</p><small>{{ c.postTitle }}</small></div>
+      <div class="admin__actions"><button (click)="dismissFlag(c)">Dismiss</button><button class="danger" (click)="deleteFlaggedComment(c)">Delete</button></div>
+    </div>
+  </section>
+  <section class="wb-card admin__panel">
+    <h3>Users ({{ users.length }})</h3>
+    <div class="moderation-row" *ngFor="let user of users">
+      <div><strong>{{ user.displayName }}</strong> <span class="comment__handle">{{ '@' + user.handle }}</span><small>{{ user.email }} · {{ user.role }}</small></div>
+      <button (click)="toggleUser(user)">{{ user.enabled ? 'Suspend' : 'Restore' }}</button>
+    </div>
+  </section>
+</div>

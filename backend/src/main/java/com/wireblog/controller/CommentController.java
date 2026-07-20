@@ -28,6 +28,11 @@ public class CommentController {
         return commentService.add(postId, req);
     }
 
+    @PostMapping("/{commentId}/flag")
+    public void flag(@PathVariable Long commentId) {
+        commentService.flag(commentId);
+    }
+
     @DeleteMapping("/{commentId}")
     public void delete(@PathVariable Long commentId) {
         commentService.delete(commentId);

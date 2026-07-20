@@ -43,7 +43,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/news/**", "/api/comments/post/**", "/uploads/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/sponsorships/active").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/sponsorships/*/click", "/api/upload").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/sponsorships/*/click").permitAll()
                 // admin-only
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/sponsorships/**").hasRole("ADMIN")
@@ -58,7 +58,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:4200", "https://*.thewire.app"));
+        config.setAllowedOriginPatterns(List.of("http://localhost:4200", "https://*.thewire.app", "https://arpitsangal1997.github.io"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

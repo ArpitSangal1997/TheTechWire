@@ -42,6 +42,12 @@ public class CommentService {
         if (req.parentId() != null) {
             parent = commentRepository.findById(req.parentId())
                     .orElseThrow(() -> ApiException.notFound("The comment you're replying to no longer exists."));
+            if (!parent.getPost().getId().equals(postId)) {
+                throw ApiException.badRequest("A reply must belong to the same post.");
+            }
+            if (parent.getParent() != null) {
+                throw ApiException.badRequest("Replies can only be one level deep.");
+            }
         }
 
         Comment comment = Comment.builder()
@@ -72,6 +78,15 @@ public class CommentService {
             throw ApiException.forbidden("You can only delete your own comments.");
         }
         commentRepository.delete(comment);
+    }
+
+    @Transactional
+    public void flag(Long commentId) {
+        currentUserResolver.requireCurrentUser();
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> ApiException.notFound("Comment not found."));
+        comment.setFlagged(true);
+        commentRepository.save(comment);
     }
 
     /** Builds a nested thread: top-level comments with their replies attached. */
