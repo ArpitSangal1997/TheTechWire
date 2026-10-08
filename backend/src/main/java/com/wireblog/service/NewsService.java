@@ -77,8 +77,8 @@ public class NewsService {
         refresh();
     }
 
-    /** Refresh cached headlines every 15 minutes. */
-    @Scheduled(fixedRate = 15 * 60 * 1000, initialDelay = 15 * 60 * 1000)
+    /** Refresh twice daily to stay within the provider's free-tier request quota. */
+    @Scheduled(fixedRate = 12 * 60 * 60 * 1000, initialDelay = 12 * 60 * 60 * 1000)
     @Transactional
     public void refresh() {
         removeStaleHeadlines();
@@ -99,7 +99,7 @@ public class NewsService {
 
             log.info("Refreshed news headlines. Cached headline count now {}.", repository.findTop50ByOrderByPublishedAtDesc().size());
         } catch (HttpStatusCodeException e) {
-            log.error("Failed to refresh news headlines: provider HTTP {} body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            log.warn("News provider refresh failed with HTTP status {}.", e.getStatusCode());
         } catch (Exception e) {
             log.error("Failed to refresh news headlines", e);
         }
@@ -109,10 +109,6 @@ public class NewsService {
     public List<NewsHeadlineResponse> latest() {
         removeStaleHeadlines();
         List<NewsHeadline> headlines = repository.findTop50ByOrderByPublishedAtDesc();
-        if (headlines.isEmpty() && hasApiKey()) {
-            refresh();
-            headlines = repository.findTop50ByOrderByPublishedAtDesc();
-        }
         if (!headlines.isEmpty()) {
             return headlines.stream().map(this::toResponse).toList();
         }
@@ -125,14 +121,6 @@ public class NewsService {
     public List<NewsHeadlineResponse> byCategory(String category) {
         removeStaleHeadlines();
         List<NewsHeadline> headlines = repository.findTop50ByCategoryOrderByPublishedAtDesc(category);
-        if (headlines.isEmpty() && hasApiKey()) {
-            try {
-                refreshCategory(category);
-                headlines = repository.findTop50ByCategoryOrderByPublishedAtDesc(category);
-            } catch (Exception e) {
-                log.warn("Could not refresh category {}", category, e);
-            }
-        }
         if (!headlines.isEmpty()) {
             return headlines.stream().map(this::toResponse).toList();
         }
@@ -153,7 +141,7 @@ public class NewsService {
         JsonNode articles = root.get("articles");
         if (articles == null || !articles.isArray() || articles.isEmpty()) {
             log.warn("News provider response had no articles for category {}. body={}", category, resp.getBody());
-            return refreshFromUrl(fallbackSearchUrl(category), "fallback search", category);
+            return 0;
         }
 
         Set<String> existingUrls = new HashSet<>();
