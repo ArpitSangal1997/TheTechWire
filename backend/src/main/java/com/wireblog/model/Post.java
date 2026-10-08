@@ -34,8 +34,7 @@ public class Post {
     @Column(length = 2048)
     private String sourceUrl;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content; // stored as HTML/markdown from the rich editor
 
     private String coverImageUrl;
