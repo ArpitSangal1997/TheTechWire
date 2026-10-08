@@ -1,33 +1,58 @@
 ﻿<div class="wb-container editor">
-  <h1 class="editor__head">{{ postId ? 'Edit story' : 'Write a new story' }}</h1>
+  <h1 class="editor__head">{{ postId ? (mode === 'LINK' ? 'Edit shared link' : 'Edit story') : 'Write' }}</h1>
 
   <p class="editor__error" *ngIf="error">{{ error }}</p>
 
   <p *ngIf="loading">Loading story...</p>
 
-  <input class="editor__title" [(ngModel)]="title" placeholder="Your headline" maxlength="220" />
-
-  <input class="editor__field" [(ngModel)]="excerpt" placeholder="One-line summary readers see on the front page (optional)" maxlength="500" />
-
-  <div class="editor__field editor__field--row">
-    <input [(ngModel)]="coverImageUrl" placeholder="Cover image URL or upload below" />
-    <label class="editor__upload">
-      <input type="file" accept="image/*" (change)="uploadCoverImage($event)" />
-      <span>{{ uploading ? 'Uploading...' : 'Upload image' }}</span>
-    </label>
+  <div class="editor__modes" *ngIf="!postId" aria-label="Choose what to share">
+    <button type="button" class="editor__mode" [class.editor__mode--active]="mode === 'STORY'" (click)="mode = 'STORY'">
+      <strong>Write a story</strong><span>Publish your own article with images and formatting.</span>
+    </button>
+    <button type="button" class="editor__mode" [class.editor__mode--active]="mode === 'LINK'" (click)="mode = 'LINK'">
+      <strong>Share a URL</strong><span>Bring a story from another site into the Wire feed.</span>
+    </button>
   </div>
 
-  <input class="editor__field" [(ngModel)]="tagsInput" placeholder="Tags, comma separated - e.g. travel, opinion" />
+  <section class="editor__link-panel wb-card" *ngIf="mode === 'LINK'">
+    <span class="wb-eyebrow">External story</span>
+    <label for="shared-url">Story URL</label>
+    <input id="shared-url" class="editor__field" type="url" [(ngModel)]="linkUrl" placeholder="https://example.com/story" maxlength="2048" required>
+    <label for="shared-title">Headline <span>(optional)</span></label>
+    <input id="shared-title" class="editor__field" [(ngModel)]="linkTitle" placeholder="Use the source site name if left blank" maxlength="220">
+    <label for="shared-note">Your take <span>(optional)</span></label>
+    <textarea id="shared-note" class="editor__field" [(ngModel)]="linkNote" placeholder="Why are you sharing this?" maxlength="500" rows="4"></textarea>
+    <p class="editor__hint">The story will link back to its original publisher.</p>
+    <button class="wb-btn wb-btn--primary" (click)="saveLink()" [disabled]="saving || loading || !linkUrl.trim()">{{ saving ? 'Sharing…' : 'Share URL' }}</button>
+  </section>
 
-  <div #editor class="editor__body"></div>
+  <div [hidden]="mode !== 'STORY'">
+    <input class="editor__title" [(ngModel)]="title" placeholder="Your headline" maxlength="220" />
 
-  <div class="editor__bar">
-    <span class="editor__count">{{ wordCount }} words</span>
-    <div class="editor__actions">
-      <button class="wb-btn wb-btn--ghost" (click)="save(false)" [disabled]="saving || loading">Save draft</button>
-      <button class="wb-btn wb-btn--primary" (click)="save(true)" [disabled]="saving || loading">
-        {{ saving ? 'Publishing...' : 'Publish' }}
-      </button>
+    <input class="editor__field" [(ngModel)]="excerpt" placeholder="One-line summary readers see on the front page (optional)" maxlength="500" />
+
+    <div class="editor__field editor__field--row">
+      <input [(ngModel)]="coverImageUrl" placeholder="Cover image URL or upload below" />
+      <label class="editor__upload">
+        <input type="file" accept="image/*" (change)="uploadCoverImage($event)" />
+        <span>{{ uploading ? 'Uploading...' : 'Upload image' }}</span>
+      </label>
+    </div>
+
+    <input class="editor__field" [(ngModel)]="tagsInput" placeholder="Tags, comma separated - e.g. travel, opinion" />
+
+    <input class="editor__field" [(ngModel)]="trailTitle" placeholder="Story Trail, optional - e.g. AI Regulation Watch" maxlength="160" />
+
+    <div #editor class="editor__body"></div>
+
+    <div class="editor__bar">
+      <span class="editor__count">{{ wordCount }} words</span>
+      <div class="editor__actions">
+        <button class="wb-btn wb-btn--ghost" (click)="save(false)" [disabled]="saving || loading">Save draft</button>
+        <button class="wb-btn wb-btn--primary" (click)="save(true)" [disabled]="saving || loading">
+          {{ saving ? 'Publishing...' : 'Publish' }}
+        </button>
+      </div>
     </div>
   </div>
 </div>

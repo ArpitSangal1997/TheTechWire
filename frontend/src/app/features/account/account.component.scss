@@ -1,0 +1,57 @@
+.account {
+  max-width: 760px;
+  padding: 44px 24px 80px;
+}
+
+.account__head {
+  margin-bottom: 24px;
+}
+.account__head h1 {
+  font-size: 32px;
+}
+.account__head p {
+  color: var(--slate);
+}
+
+.account__form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px;
+  border-radius: var(--radius-md);
+}
+.account__form label {
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 700;
+}
+.account__form input,
+.account__form textarea {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font: inherit;
+}
+.account__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--slate);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin: 8px 0;
+}
+.account__error,
+.account__success {
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 14px;
+}
+.account__error {
+  background: var(--coral-soft);
+  color: var(--coral);
+}
+.account__success {
+  background: var(--teal-soft);
+  color: var(--teal);
+}

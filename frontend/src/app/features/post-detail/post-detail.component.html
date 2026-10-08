@@ -1,7 +1,8 @@
 ﻿<article class="wb-container post" *ngIf="post">
 
   <header class="post__head">
-    <span class="wb-tag" *ngFor="let tag of post.tags">{{ tag }}</span>
+      <span class="wb-tag" *ngFor="let tag of post.tags">{{ tag }}</span>
+      <a class="post__trail" *ngIf="post.trail" [routerLink]="['/trails', post.trail.slug]">{{ post.trail.title }}</a>
     <h1 class="post__title">{{ post.title }}</h1>
     <div class="post__meta">
       <span class="post__author">{{ post.author.displayName }} <span class="post__handle">{{ '@' + post.author.handle }}</span></span>
@@ -15,7 +16,33 @@
 
   <div class="post__cover" *ngIf="post.coverImageUrl" [style.backgroundImage]="'url(' + post.coverImageUrl + ')'"></div>
 
+  <aside class="source-link wb-card" *ngIf="post.sourceUrl">
+    <span class="wb-eyebrow">Original source</span>
+    <a [href]="post.sourceUrl" target="_blank" rel="noopener noreferrer">Read the original story ↗</a>
+  </aside>
+
   <div class="post__content" [innerHTML]="post.content"></div>
+
+  <section class="pulse wb-card" *ngIf="pulse">
+    <div class="pulse__head">
+      <span class="wb-eyebrow">Reader Pulse</span>
+      <h2>{{ pulse.question }}</h2>
+      <p>{{ pulse.totalVotes }} readers answered</p>
+    </div>
+    <div class="pulse__options">
+      <button
+        type="button"
+        class="pulse__option"
+        *ngFor="let option of pulse.options"
+        [class.pulse__option--selected]="selectedPulse === option.choice"
+        [disabled]="!!selectedPulse || pulseLoading"
+        (click)="votePulse(option.choice)">
+        <span class="pulse__label">{{ option.label }}</span>
+        <span class="pulse__count">{{ option.percentage }}%</span>
+        <span class="pulse__bar" [style.width.%]="option.percentage"></span>
+      </button>
+    </div>
+  </section>
 
   <aside class="post-ad wb-card" *ngFor="let ad of inlineAds">
     <a [href]="ad.targetUrl" (click)="openAd(ad, $event)">

@@ -6,6 +6,8 @@ import { PostSummary } from '../../core/models/post.model';
 import { ShareDialogComponent } from '../../shared/components/share-dialog/share-dialog.component';
 import { SponsorshipService } from '../../core/services/sponsorship.service';
 import { Sponsorship } from '../../core/models/sponsorship.model';
+import { StoryTrailSummary } from '../../core/models/story-trail.model';
+import { StoryTrailService } from '../../core/services/story-trail.service';
 
 @Component({
   selector: 'wb-home',
@@ -23,12 +25,18 @@ export class HomeComponent implements OnInit {
   activeShare?: PostSummary;
   feedAds: Sponsorship[] = [];
   sidebarAds: Sponsorship[] = [];
+  trails: StoryTrailSummary[] = [];
 
-  constructor(private postService: PostService, private sponsorshipService: SponsorshipService) {}
+  constructor(
+    private postService: PostService,
+    private sponsorshipService: SponsorshipService,
+    private storyTrailService: StoryTrailService
+  ) {}
 
   ngOnInit(): void {
     this.load();
     this.loadAds();
+    this.loadTrails();
   }
 
   load(): void {
@@ -57,6 +65,10 @@ export class HomeComponent implements OnInit {
   loadAds(): void {
     this.sponsorshipService.active('FEED_BANNER').subscribe((ads) => (this.feedAds = ads));
     this.sponsorshipService.active('SIDEBAR').subscribe((ads) => (this.sidebarAds = ads));
+  }
+
+  loadTrails(): void {
+    this.storyTrailService.list(0, 3).subscribe((res) => (this.trails = res.content.filter((trail) => trail.storyCount > 0)));
   }
 
   openAd(ad: Sponsorship, event: Event): void {

@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Instant;
@@ -42,7 +43,7 @@ public class NewsService {
     private static final List<String> SUPPORTED_CATEGORIES = List.of("general", "business", "technology", "sports", "science", "health");
 
     private final NewsHeadlineRepository repository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${app.news.api-key:}")
@@ -60,8 +61,15 @@ public class NewsService {
     @Value("${app.news.country:in}")
     private String country;
 
+    @Value("${app.news.max-age-hours:24}")
+    private long maxAgeHours;
+
     public NewsService(NewsHeadlineRepository repository) {
         this.repository = repository;
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5_000);
+        requestFactory.setReadTimeout(10_000);
+        this.restTemplate = new RestTemplate(requestFactory);
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -73,6 +81,7 @@ public class NewsService {
     @Scheduled(fixedRate = 15 * 60 * 1000)
     @Transactional
     public void refresh() {
+        removeStaleHeadlines();
         if (!hasApiKey()) {
             log.warn("app.news.api-key is not set — using cached headlines only.");
             return;
@@ -82,8 +91,6 @@ public class NewsService {
             for (String category : SUPPORTED_CATEGORIES) {
                 saved += refreshCategory(category);
             }
-
-            repository.deleteByFetchedAtBefore(Instant.now().minus(3, ChronoUnit.DAYS));
 
             if (saved == 0 && repository.findTop50ByOrderByPublishedAtDesc().isEmpty()) {
                 log.info("Top headlines returned no usable articles; trying fallback news search for query='{}'.", query);
@@ -98,7 +105,9 @@ public class NewsService {
         }
     }
 
+    @Transactional
     public List<NewsHeadlineResponse> latest() {
+        removeStaleHeadlines();
         List<NewsHeadline> headlines = repository.findTop50ByOrderByPublishedAtDesc();
         if (headlines.isEmpty() && hasApiKey()) {
             refresh();
@@ -108,11 +117,13 @@ public class NewsService {
             return headlines.stream().map(this::toResponse).toList();
         }
         return List.of(
-                new NewsHeadlineResponse(0L, "No live headlines available yet", "#", "TheTechWire", null, "general", Instant.now())
+                new NewsHeadlineResponse(0L, "No live headlines available yet", "#", "TheTechWire", null, null, "general", Instant.now())
         );
     }
 
+    @Transactional
     public List<NewsHeadlineResponse> byCategory(String category) {
+        removeStaleHeadlines();
         List<NewsHeadline> headlines = repository.findTop50ByCategoryOrderByPublishedAtDesc(category);
         if (headlines.isEmpty() && hasApiKey()) {
             try {
@@ -152,14 +163,14 @@ public class NewsService {
         for (JsonNode a : articles) {
             String title = textOrNull(a, "title");
             String sourceUrl = textOrNull(a, "url");
-            if (title == null || title.isBlank() || sourceUrl == null || sourceUrl.isBlank()) continue;
-            if (!existingUrls.add(sourceUrl)) continue;
+            if (!isUsableArticle(title, sourceUrl) || !existingUrls.add(sourceUrl)) continue;
 
             NewsHeadline headline = NewsHeadline.builder()
                     .title(title)
                     .sourceUrl(sourceUrl)
                     .sourceName(a.has("source") ? textOrNull(a.get("source"), "name") : "Unknown")
                     .imageUrl(textOrNull(a, "urlToImage"))
+                    .description(cleanDescription(textOrNull(a, "description")))
                     .category(category)
                     .publishedAt(parsePublishedAt(textOrNull(a, "publishedAt")))
                     .build();
@@ -193,14 +204,14 @@ public class NewsService {
         for (JsonNode a : articles) {
             String title = textOrNull(a, "title");
             String sourceUrl = textOrNull(a, "url");
-            if (title == null || title.isBlank() || sourceUrl == null || sourceUrl.isBlank()) continue;
-            if (!existingUrls.add(sourceUrl)) continue;
+            if (!isUsableArticle(title, sourceUrl) || !existingUrls.add(sourceUrl)) continue;
 
             NewsHeadline headline = NewsHeadline.builder()
                     .title(title)
                     .sourceUrl(sourceUrl)
                     .sourceName(a.has("source") ? textOrNull(a.get("source"), "name") : "Unknown")
                     .imageUrl(textOrNull(a, "urlToImage"))
+                    .description(cleanDescription(textOrNull(a, "description")))
                     .category(category)
                     .publishedAt(parsePublishedAt(textOrNull(a, "publishedAt")))
                     .build();
@@ -249,10 +260,24 @@ public class NewsService {
 
     private NewsHeadlineResponse toResponse(NewsHeadline h) {
         return new NewsHeadlineResponse(h.getId(), h.getTitle(), h.getSourceUrl(), h.getSourceName(),
-                h.getImageUrl(), h.getCategory(), h.getPublishedAt());
+                h.getImageUrl(), h.getDescription(), h.getCategory(), h.getPublishedAt());
+    }
+
+    private boolean isUsableArticle(String title, String sourceUrl) {
+        return title != null && !title.isBlank() && !"[Removed]".equalsIgnoreCase(title.trim())
+                && sourceUrl != null && sourceUrl.startsWith("http");
+    }
+
+    private String cleanDescription(String description) {
+        if (description == null || description.isBlank() || "[Removed]".equalsIgnoreCase(description.trim())) return null;
+        return description.length() <= 300 ? description : description.substring(0, 297).trim() + "...";
     }
 
     private boolean hasApiKey() {
         return apiKey != null && !apiKey.isBlank();
+    }
+
+    private void removeStaleHeadlines() {
+        repository.deleteByPublishedAtBefore(Instant.now().minus(maxAgeHours, ChronoUnit.HOURS));
     }
 }

@@ -1,0 +1,22 @@
+<section class="wb-container trails">
+  <header class="trails__head">
+    <span class="wb-eyebrow">Story Trails</span>
+    <h1>Follow the stories that keep moving.</h1>
+    <p>Topic hubs connect fresh posts into timelines, so readers can catch up fast and come back when the story changes.</p>
+  </header>
+
+  <div class="trails__grid" *ngIf="trails.length">
+    <a class="trail wb-card" *ngFor="let trail of trails" [routerLink]="['/trails', trail.slug]">
+      <span class="wb-tag">{{ trail.storyCount }} {{ trail.storyCount === 1 ? 'story' : 'stories' }}</span>
+      <h2>{{ trail.title }}</h2>
+      <p>{{ trail.description }}</p>
+      <span class="trail__open">Open trail</span>
+    </a>
+  </div>
+
+  <div class="trails__empty" *ngIf="!loading && !trails.length">
+    <h2>No trails yet</h2>
+    <p>Add a Story Trail title while writing a post to start the first topic hub.</p>
+    <a routerLink="/write" class="wb-btn wb-btn--primary">Write a story</a>
+  </div>
+</section>

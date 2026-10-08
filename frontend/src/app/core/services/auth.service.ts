@@ -28,16 +28,16 @@ export class AuthService {
     );
   }
 
-  requestPasswordReset(email: string): Observable<void> {
-    return this.http.post<void>(`${environment.apiUrl}/auth/password-reset/request`, { email });
+  me(): Observable<AuthUser> {
+    return this.http.get<AuthUser>(`${environment.apiUrl}/users/me`).pipe(
+      tap((user) => this.setSession(user))
+    );
   }
 
-  confirmPasswordReset(token: string, newPassword: string): Observable<void> {
-    return this.http.post<void>(`${environment.apiUrl}/auth/password-reset/confirm`, { token, newPassword });
-  }
-
-  verifyEmail(token: string): Observable<void> {
-    return this.http.post<void>(`${environment.apiUrl}/auth/verify-email?token=${encodeURIComponent(token)}`, {});
+  updateProfile(payload: { displayName: string; bio?: string; avatarUrl?: string }): Observable<AuthUser> {
+    return this.http.patch<AuthUser>(`${environment.apiUrl}/users/me`, payload).pipe(
+      tap((user) => this.setSession(user))
+    );
   }
 
   logout(): void {
@@ -50,6 +50,10 @@ export class AuthService {
   }
 
   private setSession(user: AuthUser): void {
+    if (!user.token) {
+      this.logout();
+      return;
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     this.currentUserSignal.set(user);
   }

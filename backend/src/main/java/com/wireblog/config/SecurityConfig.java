@@ -2,6 +2,7 @@ package com.wireblog.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -15,12 +16,16 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+
+    @Value("${app.cors.allowed-origin-patterns}")
+    private String allowedOriginPatterns;
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
@@ -41,9 +46,14 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/posts/*/edit").authenticated()
                 // public reads
                 .requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/news/**", "/api/comments/post/**", "/uploads/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/groups", "/api/groups/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/trails/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/pulses/posts/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/pulses/posts/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/sponsorships/active").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/sponsorships/*/click").permitAll()
+                .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
                 // admin-only
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/sponsorships/**").hasRole("ADMIN")
@@ -58,7 +68,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:4200", "https://*.thewire.app", "https://arpitsangal1997.github.io"));
+        config.setAllowedOriginPatterns(Arrays.stream(allowedOriginPatterns.split(","))
+            .map(String::trim)
+            .toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

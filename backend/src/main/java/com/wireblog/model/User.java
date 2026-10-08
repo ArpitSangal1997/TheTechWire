@@ -50,6 +50,7 @@ public class User {
     private boolean emailVerified = false;
 
     private String verificationToken;
+    private Instant verificationTokenExpiresAt;
     private String passwordResetToken;
     private Instant passwordResetExpiresAt;
 

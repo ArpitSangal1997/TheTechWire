@@ -7,6 +7,7 @@
   align-items: center;
   gap: 32px;
   padding: 18px 24px;
+  flex-wrap: wrap;
 }
 
 .masthead__brand {
@@ -42,6 +43,7 @@
   display: flex;
   gap: 26px;
   flex: 1 1 auto;
+  order: 2;
 }
 .masthead__links a {
   font-size: 14.5px;
@@ -58,6 +60,18 @@
   align-items: center;
   gap: 12px;
   flex: 0 0 auto;
+  order: 3;
+}
+
+.masthead__menu-toggle {
+  display: none;
+  border: 1px solid var(--line-on-ink);
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--paper);
+  font-weight: 650;
+  order: 1;
 }
 
 .masthead__ghost {
@@ -72,8 +86,22 @@
 }
 
 @media (max-width: 880px) {
-  .masthead__links { display: none; }
+  .masthead__row { gap: 12px; padding: 14px 16px; }
+  .masthead__word { font-size: 20px; }
+  .masthead__menu-toggle { display: inline-flex; margin-left: auto; }
+  .masthead__links { display: none; order: 4; flex: 1 0 100%; flex-direction: column; gap: 0; padding-top: 8px; }
+  .masthead__links--open { display: flex; }
+  .masthead__links a { padding: 12px 4px; border-bottom: 1px solid var(--line-on-ink); }
+  .masthead__actions { order: 2; margin-left: 0; gap: 8px; }
   .masthead__hello { display: none; }
+}
+
+@media (max-width: 420px) {
+  .masthead__row { gap: 8px; }
+  .masthead__brand { gap: 7px; }
+  .masthead__mark { width: 30px; height: 30px; }
+  .masthead__word { font-size: 18px; }
+  .masthead__actions .wb-btn { padding: 8px 11px; font-size: 12.5px; }
 }
 .notifications { position: relative; }
 .notifications__button {

@@ -4,6 +4,7 @@ export interface NewsHeadline {
   sourceUrl: string;
   sourceName: string;
   imageUrl?: string;
+  description?: string;
   category: string;
   publishedAt: string;
 }

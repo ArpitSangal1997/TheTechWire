@@ -21,12 +21,14 @@ export class RegisterComponent {
   loading = false;
   uploadingAvatar = false;
   error = '';
+  success = '';
 
-  constructor(private auth: AuthService, private router: Router, private uploadService: UploadService) {}
+  constructor(private auth: AuthService, private uploadService: UploadService, private router: Router) {}
 
   submit(): void {
     this.loading = true;
     this.error = '';
+    this.success = '';
     this.auth.register({
       displayName: this.displayName,
       handle: this.handle.toLowerCase().replace(/[^a-z0-9_]/g, ''),
@@ -34,7 +36,10 @@ export class RegisterComponent {
       password: this.password,
       avatarUrl: this.avatarUrl
     }).subscribe({
-      next: () => this.router.navigate(['/']),
+      next: () => {
+        this.loading = false;
+        this.router.navigateByUrl('/');
+      },
       error: (err) => {
         this.loading = false;
         this.error = err?.error?.message ?? 'Could not create your account.';

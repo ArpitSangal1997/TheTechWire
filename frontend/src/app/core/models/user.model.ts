@@ -6,11 +6,12 @@ export interface AuthorRef {
 }
 
 export interface AuthUser {
-  token: string;
+  token?: string;
   userId: number;
   displayName: string;
   handle: string;
   avatarUrl?: string;
+  bio?: string;
   role: 'READER' | 'AUTHOR' | 'ADMIN';
   emailVerified: boolean;
 }

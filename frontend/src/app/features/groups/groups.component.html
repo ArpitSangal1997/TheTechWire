@@ -1,0 +1,46 @@
+<main class="wb-container groups">
+	<header><span class="wb-eyebrow">Community</span><h1>Groups</h1><p>Find your people, join the conversation, or create a new community.</p></header>
+	<form *ngIf="auth.isLoggedIn()" class="wb-card groups__create" (ngSubmit)="create()">
+		<h2>Create a group</h2>
+		<input [(ngModel)]="name" name="name" maxlength="120" placeholder="Group name" required>
+		<input [(ngModel)]="description" name="description" maxlength="500" placeholder="What is this group about?">
+		<input [(ngModel)]="topics" name="topics" maxlength="320" placeholder="Topic tags, separated by commas">
+		<textarea [(ngModel)]="rules" name="rules" maxlength="2000" rows="2" placeholder="Visible group rules (optional)"></textarea>
+		<label>Group visibility
+			<select [(ngModel)]="visibility" name="visibility" (ngModelChange)="visibilityChanged()">
+				<option value="PUBLIC">Public — anyone can discover, read, and follow</option>
+				<option value="PRIVATE">Private — content is visible to members only</option>
+			</select>
+		</label>
+		<label *ngIf="visibility === 'PRIVATE'">How people can join
+			<select [(ngModel)]="joinPolicy" name="joinPolicy">
+				<option value="REQUEST">Request to join — admins review requests</option>
+				<option value="INVITE_ONLY">Invite-only — admins add members</option>
+			</select>
+		</label>
+		<button class="wb-btn wb-btn--primary" [disabled]="!name.trim()">Create group</button>
+	</form>
+	<p *ngIf="!auth.isLoggedIn()" class="wb-card groups__signin">Browse public communities below. <a routerLink="/login">Sign in</a> to follow a group or create one.</p>
+	<p class="error" *ngIf="error">{{error}}</p>
+	<p class="groups__empty" *ngIf="!groups.length && !error">No groups found yet. Start one around a topic you care about.</p>
+	<article class="wb-card" *ngFor="let group of groups">
+		<div>
+			<div class="groups__title">
+				<h2><a [routerLink]="['/groups', group.id]">{{group.name}}</a></h2>
+				<span class="groups__badge" [class.groups__badge--private]="group.visibility === 'PRIVATE'">{{group.visibility === 'PUBLIC' ? 'Public' : 'Private'}}</span>
+			</div>
+			<p>{{group.description || 'A space for people to share and discuss.'}}</p>
+			<div class="groups__tags"><span *ngFor="let topic of group.topics">#{{topic}}</span></div>
+			<small>{{group.memberCount}} members · {{group.creatorName}}</small>
+		</div>
+		<div class="groups__actions">
+			<a class="wb-btn wb-btn--ghost" [routerLink]="['/groups', group.id]">Open group</a>
+			<button *ngIf="group.visibility === 'PUBLIC' && !group.isMember && auth.isLoggedIn()" class="wb-btn wb-btn--primary" (click)="follow(group)">Follow</button>
+			<button *ngIf="group.visibility === 'PRIVATE' && group.joinPolicy === 'REQUEST' && !group.isMember && !group.joinRequestPending && auth.isLoggedIn()" class="wb-btn wb-btn--primary" (click)="requestToJoin(group)">Request to join</button>
+			<a *ngIf="group.visibility === 'PRIVATE' && group.joinPolicy === 'REQUEST' && !group.isMember && !group.joinRequestPending && !auth.isLoggedIn()" class="wb-btn wb-btn--ghost" routerLink="/login">Sign in to request</a>
+			<span *ngIf="group.joinRequestPending" class="groups__pending">Request pending</span>
+			<span *ngIf="group.visibility === 'PRIVATE' && group.joinPolicy === 'INVITE_ONLY' && !group.isMember" class="groups__pending">Invite-only</span>
+			<button *ngIf="auth.currentUser()?.userId === group.creatorId || auth.isAdmin()" class="wb-btn wb-btn--ghost" (click)="remove(group)">Delete</button>
+		</div>
+	</article>
+</main>

@@ -1,120 +1,99 @@
 ﻿# TheTechWire
 
-TheTechWire is a full-stack publishing platform for writers, readers, and admins. It includes a public blog feed, author workspace, threaded comments, sharing, notifications, sponsorship placements, and a GK news experience powered by the News API.
+TheTechWire (WireBlog) is a full-stack publishing platform for writers and readers to discover stories, follow topic Trails, and keep useful community discussions together.
 
-## Project structure
+## Project documentation
+
+- [Backend guide](backend/README.md): API layers, endpoints, configuration, and backend commands.
+- [Frontend guide](frontend/README.md): routes, client architecture, configuration, and frontend commands.
+- [Launch-readiness review](LAUNCH_READINESS.md): smoke-test results, launch blockers, and a value-focused product roadmap.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Browser[Angular 17 application] -->|HTTP JSON API requests| API[Spring Boot REST API]
+  API --> Sec[Security and rate-limit filters]
+  Sec --> C[Controllers and DTO validation]
+  C --> S[Services and business rules]
+  S --> R[Spring Data repositories]
+  R --> JPA[Hibernate / JPA]
+  JPA --> DB[(PostgreSQL)]
+  S --> News[NewsAPI.org]
+  API --> Uploads[Local uploads directory]
+```
+
+The backend follows a controller → service → repository structure. The frontend uses lazy-loaded Angular feature routes; core services call the API through `HttpClient`, and an interceptor attaches the stored JWT. The backend remains the authority for authorization—frontend guards are only for navigation and user experience.
+
+## Repository layout
 
 ```text
 blogapp/
-├── backend/   Spring Boot 3.3, Java 17, Spring Security, Spring Data JPA, PostgreSQL
-└── frontend/  Angular 17 standalone app
+├── backend/       Spring Boot 3.3 / Java 17 REST API
+├── frontend/      Angular 17 standalone client
+├── data/          Ignored local database/runtime data; do not commit or delete user data
+└── README.md      Project overview and architecture
 ```
 
-## Local setup
+## Capabilities
 
-### Backend
+- Registration, login, and JWT sessions. Email verification and password reset are intentionally disabled until an email provider is introduced.
+- Public stories with source links, drafts, publishing, archive, search, tags, pagination, and author ownership.
+- Story Trails that collect related posts into public topic pages.
+- Public group discovery and readable discussions, with public follow or private request-to-join/invite-only membership.
+- Group topic tags, purposes, rules, Story Trail links, threaded comments, and admin-reviewed join requests.
+- Threaded story comments, comment flags, sharing, notifications, and Reader Pulse votes.
+- NewsAPI headline fetching and local headline caching.
+- Admin tools for users, posts, flagged comments, and sponsorship placements.
+- Authenticated image uploads with type/signature checks, currently stored on local disk.
 
-Create a PostgreSQL database named `wireblog` and configure the local connection in [backend/src/main/resources/application.yml](backend/src/main/resources/application.yml).
+## Run locally
 
-```powershell
-cd backend
-$env:NEWS_API_KEY="your_key_here"
-mvn spring-boot:run
-```
+Requirements: Java 17, Maven, Node.js/npm compatible with Angular 17, and PostgreSQL.
 
-The backend runs at http://localhost:8080.
+1. Create a PostgreSQL database named `wireblog`. By default, `backend/src/main/resources/application.yml` uses `localhost:5432`, username `postgres`, and password `root`; adjust these local development settings or supply Spring datasource environment overrides if your database differs.
+2. Start the backend from PowerShell:
 
-### Frontend
+	```powershell
+	cd backend
+	$env:NEWS_API_KEY="your_key_here" # optional; enables live headlines
+	mvn spring-boot:run
+	```
 
-```bash
-cd frontend
-npm install
-npm start
-```
+	The API listens at `http://localhost:8080`.
+3. In another terminal, start the frontend:
 
-The frontend runs at http://localhost:4200 and calls the backend through `/api`.
+	```powershell
+	cd frontend
+	npm ci
+	npm start
+	```
 
-## Core capabilities
+	The app listens at `http://localhost:4200` and uses `http://localhost:8080/api` in development.
 
-- Authentication and account flows: register, login, email verification, password reset.
-- Posts: create, edit, publish, archive, delete, search, tag-filter, pagination, and author-specific lists.
-- Comments: add threaded comments and delete your own comments.
-- Sharing: share posts in-app, on social channels, by email, or with a copy link.
-- News: fetch and cache GK headlines by category.
-- Notifications: unread counts, read-all action, and share/reply notifications.
-- Admin: sponsorship management and moderation-oriented admin endpoints.
+See the [backend guide](backend/README.md#configuration) for production variables and the [frontend guide](frontend/README.md#configuration) for API URL settings.
 
-## API flow overview
+## API overview
 
-### Auth
-- POST `/api/auth/register`
-- POST `/api/auth/login`
-- POST `/api/auth/verify-email?token=...`
-- POST `/api/auth/password-reset/request`
-- POST `/api/auth/password-reset/confirm`
+All API routes are under `/api`. Main resources include `/auth`, `/users`, `/posts`, `/comments`, `/groups`, `/friends`, `/trails`, `/pulses`, `/news`, `/notifications`, `/upload`, `/sponsorships`, and `/admin`. See the backend guide for the route inventory and access notes.
 
-### Posts
-- GET `/api/posts`
-- GET `/api/posts/mine`
-- GET `/api/posts/{slug}`
-- POST `/api/posts`
-- PUT `/api/posts/{id}`
-- POST `/api/posts/{id}/publish`
-- POST `/api/posts/{id}/archive`
-- DELETE `/api/posts/{id}`
+## Admin bootstrap
 
-### Comments
-- GET `/api/comments/post/{postId}`
-- POST `/api/comments/post/{postId}`
-- DELETE `/api/comments/{commentId}`
-
-### Shares
-- POST `/api/posts/{postId}/share`
-
-### News
-- GET `/api/news/headlines`
-- GET `/api/news/headlines?category=technology`
-
-### Notifications
-- GET `/api/notifications`
-- GET `/api/notifications/unread-count`
-- PATCH `/api/notifications/read-all`
-
-### Uploads
-- POST `/api/upload`
-
-### Admin
-- GET `/api/admin/sponsorships`
-- POST `/api/admin/sponsorships`
-- PUT `/api/admin/sponsorships/{id}`
-- DELETE `/api/admin/sponsorships/{id}`
-- GET `/api/sponsorships/active?placement=...`
-- POST `/api/sponsorships/{id}/click`
-
-## Configuration
-
-| Variable | Purpose |
-|---|---|
-| `NEWS_API_KEY` | News API key for GK headlines. |
-| `JWT_SECRET` | Production JWT signing secret. |
-| `FRONTEND_URL` | Base URL for verification and reset links. |
-| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | PostgreSQL settings for the `prod` profile. |
-
-## Admin setup
-
-Register through the UI, then promote the user in PostgreSQL:
+Register an account, then promote it in PostgreSQL:
 
 ```sql
 UPDATE users SET role = 'ADMIN' WHERE email = 'you@example.com';
 ```
 
-Log out and back in to access the admin dashboard.
+Log out and back in so the next JWT contains the updated role.
 
-## Verification
+## Product direction and current limitations
 
-- `mvn test`: passes.
-- `npm run build`: passes with the existing Quill-related warning.
+WireBlog is the lasting, searchable home for story discussion; WhatsApp and other chat apps remain useful invitation and sharing channels. Group privacy, discovery, following, and private join requests are implemented. URL metadata preview cards, saved stories, Trail follows, personalized onboarding, and activity digests remain future work.
 
-## Next step for deployment
+This is a development baseline, not a production-hardened deployment. Production secrets and deployment settings, durable media storage, shared rate limiting, session safety, and observability still need attention. The backend guide documents migration, configuration, and the current API workflow test coverage.
 
-The application is ready for feature work and local development. Deployment-specific items such as Docker, reverse proxy, HTTPS, CI, and secrets management can be added later without changing the existing app flow.
+## Build and test
+
+- Backend: `cd backend; mvn test` (runs API workflow tests for reader/author, group/friend, and administrator journeys using an isolated H2 database).
+- Frontend: `cd frontend; npm run build` (there is no configured frontend test or lint script yet).

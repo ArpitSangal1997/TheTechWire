@@ -1,0 +1,71 @@
+.group-detail { max-width: 1120px; padding: 36px 24px 80px; }
+.group-detail__back { display: inline-block; margin-bottom: 18px; color: var(--teal); font-weight: 650; }
+.group-detail__header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; padding: 28px; margin-bottom: 24px; }
+.group-detail__header h1 { margin: 6px 0 8px; font-size: clamp(28px, 4vw, 42px); }
+.group-detail__header p { margin: 0 0 12px; color: var(--slate); }
+.group-detail__header small { color: var(--slate); }
+.group-detail__header-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.group-detail__topics { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; color: var(--teal); font-size: 13px; }
+.group-detail__rules { padding: 12px; border-left: 3px solid var(--teal); background: var(--paper); white-space: pre-wrap; }
+.group-detail__settings, .group-detail__requests { display: grid; gap: 12px; padding: 22px; margin: 0 0 20px; }
+.group-detail__settings h2, .group-detail__requests h2 { margin: 0; }
+.group-detail__settings label { display: grid; gap: 6px; font-size: 14px; font-weight: 650; }
+.group-detail__settings input, .group-detail__settings textarea, .group-detail__settings select { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; }
+.group-detail__settings textarea { resize: vertical; }
+.group-detail__request { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.group-detail__request small { display: block; margin-top: 3px; color: var(--slate); }
+.group-detail__request > div { display: flex; gap: 8px; }
+.group-detail__private-preview { padding: 24px; }
+.group-detail__private-preview p { color: var(--slate); }
+.wb-btn--danger { border: 1px solid var(--coral); color: var(--coral); background: transparent; }
+.group-detail__layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; align-items: start; }
+.group-detail__feed { display: grid; gap: 16px; }
+.group-detail__composer { display: grid; gap: 12px; padding: 22px; }
+.group-detail__composer h2 { margin: 0; font-size: 20px; }
+.group-detail__composer input, .group-detail__composer textarea, .group-members__invite input { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; }
+.group-detail__composer textarea { resize: vertical; }
+.group-post { position: relative; padding: 22px; }
+.group-post__meta { display: flex; flex-wrap: wrap; gap: 8px; color: var(--slate); font-size: 13px; }
+.group-post h2 { margin: 12px 0 8px; font-size: 20px; }
+.group-post p { margin: 0; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.group-post__trail { display: inline-block; margin-bottom: 12px; color: var(--teal); font-size: 13px; font-weight: 700; }
+.group-post__delete { margin-top: 16px; padding: 0; border: 0; background: transparent; color: var(--coral); font-weight: 650; cursor: pointer; }
+.group-post__comments { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.group-post__comments h3 { margin: 0 0 10px; font-size: 15px; }
+.group-comment { padding: 12px 0; border-top: 1px solid var(--line); }
+.group-comment__byline { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; }
+.group-comment__byline span { color: var(--slate); }
+.group-comment > p, .group-comment__nested > p { margin: 5px 0; font-size: 14px; overflow-wrap: anywhere; }
+.group-comment__actions { display: flex; gap: 14px; }
+.group-comment__actions button, .group-comment__nested button { border: 0; background: transparent; color: var(--slate); font-size: 12px; font-weight: 650; }
+.group-comment__actions .group-comment__danger, .group-comment__nested .group-comment__danger { color: var(--coral); }
+.group-comment__nested { margin: 12px 0 0 16px; padding-left: 12px; border-left: 2px solid var(--line); }
+.group-comment__reply, .group-comment__composer { display: grid; gap: 8px; margin-top: 12px; }
+.group-comment__reply textarea, .group-comment__composer textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; font-size: 14px; resize: vertical; }
+.group-comment__reply button, .group-comment__composer button { justify-self: end; }
+.group-detail__invite-only { color: var(--slate); font-size: 13px; }
+.group-members { padding: 20px; }
+.group-members h2 { display: flex; justify-content: space-between; margin: 0 0 16px; font-size: 19px; }
+.group-members h2 span { color: var(--slate); }
+.group-members__invite { display: grid; gap: 9px; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.group-members__invite label { font-size: 13px; font-weight: 700; }
+.group-members__invite > small { color: var(--slate); }
+.group-members__suggestion, .group-members__person { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; }
+.group-members__suggestion { cursor: pointer; }
+.group-members__suggestion b { color: var(--teal); }
+.group-members__person strong, .group-members__person small, .group-members__suggestion strong, .group-members__suggestion small { display: block; }
+.group-members__person small, .group-members__suggestion small { margin-top: 3px; color: var(--slate); font-size: 12px; }
+.group-members__person button { border: 0; background: transparent; color: var(--coral); cursor: pointer; }
+.group-detail__empty, .group-detail__notice { padding: 24px; color: var(--slate); }
+.group-detail__error { color: var(--coral); }
+@media (max-width: 760px) { .group-detail__header { flex-direction: column; padding: 22px; } .group-detail__layout { grid-template-columns: 1fr; } }
+@media (max-width: 520px) {
+	.group-detail { padding: 24px 16px 56px; }
+	.group-detail__header { gap: 14px; padding: 18px; }
+	.group-detail__header-actions { width: 100%; }
+	.group-detail__header-actions .wb-btn { flex: 1 1 auto; justify-content: center; }
+	.group-detail__composer, .group-post, .group-members, .group-detail__settings, .group-detail__requests { padding: 16px; }
+	.group-members__person { align-items: flex-start; }
+	.group-members__person button { flex: 0 0 auto; }
+	.group-comment__nested { margin-left: 8px; padding-left: 8px; }
+}

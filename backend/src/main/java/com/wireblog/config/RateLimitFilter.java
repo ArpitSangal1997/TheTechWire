@@ -38,7 +38,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private boolean isHotspot(String path) {
-        return path.equals("/api/auth/login") || path.equals("/api/auth/register") || path.equals("/api/auth/password-reset/request")
+        return path.equals("/api/auth/login") || path.equals("/api/auth/register")
                 || path.equals("/api/upload") || path.matches("/api/comments/post/\\d+") || path.matches("/api/posts/\\d+/share");
     }
     private String clientIp(HttpServletRequest request) {

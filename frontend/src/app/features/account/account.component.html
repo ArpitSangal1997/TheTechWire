@@ -1,0 +1,31 @@
+<section class="wb-container account">
+  <header class="account__head">
+    <span class="wb-eyebrow">Account</span>
+    <h1>Profile settings</h1>
+    <p>Keep your public writer identity polished and current.</p>
+  </header>
+
+  <form class="account__form wb-card" (ngSubmit)="save()">
+    <p class="account__error" *ngIf="error">{{ error }}</p>
+    <p class="account__success" *ngIf="message">{{ message }}</p>
+
+    <label>Display name</label>
+    <input [(ngModel)]="displayName" name="displayName" maxlength="120" />
+
+    <label>Avatar URL</label>
+    <input [(ngModel)]="avatarUrl" name="avatarUrl" placeholder="https://..." />
+
+    <label>Bio</label>
+    <textarea [(ngModel)]="bio" name="bio" maxlength="500" rows="5" placeholder="A short note readers see on your profile later."></textarea>
+
+    <div class="account__meta" *ngIf="auth.currentUser() as user">
+      <span>{{ '@' + user.handle }}</span>
+      <span>{{ user.role }}</span>
+      <span>Account active</span>
+    </div>
+
+    <button class="wb-btn wb-btn--primary" type="submit" [disabled]="saving">
+      {{ saving ? 'Saving...' : 'Save profile' }}
+    </button>
+  </form>
+</section>

@@ -1,0 +1,59 @@
+.trails {
+  padding: 44px 24px 76px;
+}
+
+.trails__head {
+  max-width: 720px;
+  margin-bottom: 32px;
+}
+.trails__head h1 {
+  font-size: clamp(32px, 5vw, 54px);
+  line-height: 1.05;
+}
+.trails__head p {
+  color: var(--slate);
+  font-size: 17px;
+}
+
+.trails__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.trail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 220px;
+  padding: 20px;
+  border-radius: var(--radius-md);
+}
+.trail:hover {
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-2px);
+}
+.trail h2 {
+  font-size: 25px;
+  line-height: 1.12;
+}
+.trail p {
+  color: var(--slate);
+  flex: 1;
+}
+.trail__open {
+  color: var(--teal);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.trails__empty {
+  padding: 48px 0;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .trails__grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 620px) {
+  .trails__grid { grid-template-columns: 1fr; }
+}

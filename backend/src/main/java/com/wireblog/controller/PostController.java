@@ -3,6 +3,7 @@ package com.wireblog.controller;
 import com.wireblog.dto.PostDetailResponse;
 import com.wireblog.dto.PostRequest;
 import com.wireblog.dto.PostSummaryResponse;
+import com.wireblog.dto.ShareLinkRequest;
 import com.wireblog.service.PostService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -51,6 +52,16 @@ public class PostController {
     @PostMapping
     public PostDetailResponse create(@Valid @RequestBody PostRequest req) {
         return postService.create(req);
+    }
+
+    @PostMapping("/share-link")
+    public PostDetailResponse shareLink(@Valid @RequestBody ShareLinkRequest request) {
+        return postService.shareLink(request);
+    }
+
+    @PutMapping("/{id}/share-link")
+    public PostDetailResponse updateSharedLink(@PathVariable Long id, @Valid @RequestBody ShareLinkRequest request) {
+        return postService.updateSharedLink(id, request);
     }
 
     @PutMapping("/{id}")

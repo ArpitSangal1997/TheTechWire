@@ -1,0 +1,133 @@
+<main class="wb-container group-detail">
+  <a class="group-detail__back" routerLink="/groups">← All groups</a>
+  <p *ngIf="loading" class="group-detail__notice">Loading group…</p>
+  <p *ngIf="error" class="group-detail__error">{{ error }}</p>
+
+  <ng-container *ngIf="group as currentGroup">
+    <header class="group-detail__header wb-card">
+      <div>
+        <span class="wb-eyebrow">{{ currentGroup.visibility === 'PUBLIC' ? 'Public community' : 'Private community' }}</span>
+        <h1>{{ currentGroup.name }}</h1>
+        <p>{{ currentGroup.description || 'A space for people to share and discuss.' }}</p>
+        <div class="group-detail__topics"><span *ngFor="let topic of currentGroup.topics">#{{ topic }}</span></div>
+        <p *ngIf="currentGroup.rules" class="group-detail__rules"><strong>Group rules</strong><br>{{ currentGroup.rules }}</p>
+        <small>{{ currentGroup.memberCount }} members · {{ currentGroup.visibility === 'PUBLIC' ? 'Anyone can follow' : (currentGroup.joinPolicy === 'REQUEST' ? 'Request to join' : 'Invite-only') }} · Created by {{ currentGroup.creatorName }} · {{ currentGroup.createdAt | date:'mediumDate' }}</small>
+      </div>
+      <div class="group-detail__header-actions">
+        <button *ngIf="currentGroup.canFollow" class="wb-btn wb-btn--primary" (click)="follow()">Follow group</button>
+        <button *ngIf="currentGroup.canRequestJoin" class="wb-btn wb-btn--primary" (click)="requestToJoin()">Request to join</button>
+        <span *ngIf="currentGroup.joinRequestPending" class="group-detail__invite-only">Join request pending</span>
+        <span *ngIf="currentGroup.visibility === 'PRIVATE' && !currentGroup.isMember && !currentGroup.canManage && currentGroup.joinPolicy === 'INVITE_ONLY'" class="group-detail__invite-only">Invite-only group</span>
+        <a *ngIf="!auth.isLoggedIn() && currentGroup.visibility === 'PRIVATE'" class="wb-btn wb-btn--ghost" routerLink="/login">Sign in to view access options</a>
+        <button *ngIf="currentGroup.isMember && auth.currentUser()?.userId !== currentGroup.creatorId" class="wb-btn wb-btn--ghost" (click)="leave()">Leave group</button>
+        <button *ngIf="currentGroup.canManage" class="wb-btn wb-btn--ghost" (click)="editingSettings = !editingSettings">{{ editingSettings ? 'Close settings' : 'Group settings' }}</button>
+        <button *ngIf="canDeleteGroup" class="wb-btn wb-btn--danger" (click)="deleteGroup()">Delete group</button>
+      </div>
+    </header>
+
+    <form *ngIf="currentGroup.canManage && editingSettings" class="wb-card group-detail__settings" (ngSubmit)="updateSettings()">
+      <h2>Group settings</h2>
+      <label>Description
+        <input [(ngModel)]="settingsDescription" name="settingsDescription" maxlength="500">
+      </label>
+      <label>Topic tags
+        <input [(ngModel)]="settingsTopics" name="settingsTopics" maxlength="320" placeholder="Comma-separated topics">
+      </label>
+      <label>Visible rules
+        <textarea [(ngModel)]="settingsRules" name="settingsRules" maxlength="2000" rows="3"></textarea>
+      </label>
+      <label>Visibility
+        <select [(ngModel)]="settingsVisibility" name="settingsVisibility" (ngModelChange)="visibilityChanged()">
+          <option value="PUBLIC">Public — anyone can discover, read, and follow</option>
+          <option value="PRIVATE">Private — content is visible to members only</option>
+        </select>
+      </label>
+      <label *ngIf="settingsVisibility === 'PRIVATE'">How people can join
+        <select [(ngModel)]="settingsJoinPolicy" name="settingsJoinPolicy">
+          <option value="REQUEST">Request to join</option>
+          <option value="INVITE_ONLY">Invite-only</option>
+        </select>
+      </label>
+      <button class="wb-btn wb-btn--primary">Save settings</button>
+    </form>
+
+    <section *ngIf="currentGroup.canManage && currentGroup.joinRequests.length" class="wb-card group-detail__requests">
+      <h2>Join requests <span>{{ currentGroup.joinRequests.length }}</span></h2>
+      <div *ngFor="let request of currentGroup.joinRequests" class="group-detail__request">
+        <span><strong>{{ request.displayName }}</strong><small>&#64;{{ request.handle }} · {{ request.createdAt | date:'medium' }}</small></span>
+        <div><button class="wb-btn wb-btn--primary" (click)="decideJoinRequest(request, 'APPROVED')">Approve</button><button class="wb-btn wb-btn--ghost" (click)="decideJoinRequest(request, 'DECLINED')">Decline</button></div>
+      </div>
+    </section>
+
+    <section class="group-detail__layout">
+      <div class="group-detail__feed">
+        <div *ngIf="currentGroup.visibility === 'PRIVATE' && !currentGroup.isMember && !currentGroup.canManage" class="wb-card group-detail__private-preview">
+          <h2>This is a private group</h2>
+          <p>Stories and discussions are visible to members only. Follow the access option above to join the community.</p>
+          <p *ngIf="currentGroup.joinPolicy === 'INVITE_ONLY'">A group admin must invite you before you can read or post here.</p>
+        </div>
+        <ng-container *ngIf="currentGroup.visibility === 'PUBLIC' || currentGroup.isMember || currentGroup.canManage">
+        <form *ngIf="currentGroup.isMember" class="wb-card group-detail__composer" (ngSubmit)="createPost()">
+          <h2>Share with the group</h2>
+          <input [(ngModel)]="title" name="title" maxlength="140" placeholder="Post title" required>
+          <textarea [(ngModel)]="body" name="body" maxlength="5000" rows="4" placeholder="Write a group update…" required></textarea>
+          <input [(ngModel)]="trailTitle" name="trailTitle" maxlength="160" placeholder="Story Trail (optional)">
+          <button class="wb-btn wb-btn--primary" [disabled]="working || !title.trim() || !body.trim()">{{ working ? 'Posting…' : 'Post to group' }}</button>
+        </form>
+        <article class="wb-card group-post" *ngFor="let post of currentGroup.posts">
+          <div class="group-post__meta"><strong>{{ post.authorName }}</strong><span>&#64;{{ post.authorHandle }} · {{ post.createdAt | date:'medium' }}</span></div>
+          <h2>{{ post.title }}</h2>
+          <a *ngIf="post.trail" class="group-post__trail" [routerLink]="['/trails', post.trail.slug]">Story Trail · {{ post.trail.title }}</a>
+          <p>{{ post.body }}</p>
+          <button *ngIf="currentGroup.canManage" class="group-post__delete" (click)="deletePost(post)">Delete post</button>
+          <section class="group-post__comments">
+            <h3>{{ post.commentCount }} {{ post.commentCount === 1 ? 'comment' : 'comments' }}</h3>
+            <div class="group-comment" *ngFor="let comment of post.comments">
+              <div class="group-comment__byline"><strong>{{ comment.authorName }}</strong><span>&#64;{{ comment.authorHandle }} · {{ comment.createdAt | date:'medium' }}</span></div>
+              <p>{{ comment.body }}</p>
+              <div class="group-comment__actions">
+                <button *ngIf="currentGroup.isMember" (click)="replyingTo = replyingTo === comment.id ? undefined : comment.id">Reply</button>
+                <button *ngIf="currentGroup.canManage || auth.currentUser()?.userId === comment.authorId" class="group-comment__danger" (click)="deleteComment(post, comment)">Delete</button>
+              </div>
+              <form *ngIf="replyingTo === comment.id" class="group-comment__reply" (ngSubmit)="addComment(post, comment.id)">
+                <textarea [(ngModel)]="replyDrafts[comment.id]" [name]="'reply-' + comment.id" rows="2" maxlength="5000" placeholder="Write a reply…" required></textarea>
+                <button class="wb-btn wb-btn--primary" [disabled]="!(replyDrafts[comment.id] || '').trim()">Reply</button>
+              </form>
+              <div class="group-comment__nested" *ngFor="let reply of comment.replies">
+                <div class="group-comment__byline"><strong>{{ reply.authorName }}</strong><span>&#64;{{ reply.authorHandle }} · {{ reply.createdAt | date:'medium' }}</span></div>
+                <p>{{ reply.body }}</p>
+                <button *ngIf="currentGroup.canManage || auth.currentUser()?.userId === reply.authorId" class="group-comment__danger" (click)="deleteComment(post, reply)">Delete</button>
+              </div>
+            </div>
+            <form *ngIf="currentGroup.isMember" class="group-comment__composer" (ngSubmit)="addComment(post)">
+              <textarea [(ngModel)]="commentDrafts[post.id]" [name]="'comment-' + post.id" rows="2" maxlength="5000" placeholder="Add to the discussion…" required></textarea>
+              <button class="wb-btn wb-btn--ghost" [disabled]="!(commentDrafts[post.id] || '').trim()">Comment</button>
+            </form>
+          </section>
+        </article>
+        <p *ngIf="!currentGroup.posts.length && currentGroup.isMember" class="wb-card group-detail__empty">No group posts yet. Be the first to start the conversation.</p>
+        <p *ngIf="currentGroup.visibility === 'PUBLIC' && !currentGroup.isMember" class="wb-card group-detail__empty">
+          <ng-container *ngIf="auth.isLoggedIn(); else signInToFollow">Follow this group to post and join the discussion.</ng-container>
+          <ng-template #signInToFollow><a routerLink="/login">Sign in</a> to follow this group and join the discussion.</ng-template>
+        </p>
+        </ng-container>
+      </div>
+
+      <aside *ngIf="currentGroup.visibility === 'PUBLIC' || currentGroup.isMember || currentGroup.canManage" class="wb-card group-members">
+        <h2>Members <span>{{ currentGroup.memberCount }}</span></h2>
+        <div *ngIf="currentGroup.canManage" class="group-members__invite">
+          <label for="member-search">Add people</label>
+          <input id="member-search" [(ngModel)]="memberQuery" (ngModelChange)="searchMembers()" placeholder="Search name or @handle" autocomplete="off">
+          <button *ngFor="let user of addableUsers" class="group-members__suggestion" (click)="addMember(user)">
+            <span><strong>{{ user.displayName }}</strong><small>&#64;{{ user.handle }}</small></span><b>Add</b>
+          </button>
+          <small *ngIf="memberQuery.trim().length >= 2 && !addableUsers.length">No matching people to add.</small>
+        </div>
+        <div class="group-members__person" *ngFor="let member of currentGroup.members">
+          <span><strong>{{ member.displayName }}</strong><small>&#64;{{ member.handle }} · {{ member.role === 'GROUP_ADMIN' ? 'Group admin' : 'Member' }}</small></span>
+          <button *ngIf="currentGroup.canManage && member.id !== currentGroup.creatorId" (click)="removeMember(member)" aria-label="Remove member">Remove</button>
+        </div>
+      </aside>
+    </section>
+  </ng-container>
+</main>

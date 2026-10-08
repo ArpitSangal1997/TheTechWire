@@ -17,11 +17,16 @@ export class PostEditorComponent implements OnInit, AfterViewInit {
   @ViewChild('editor') editorElement?: ElementRef<HTMLDivElement>;
 
   postId?: number;
+  mode: 'STORY' | 'LINK' = 'STORY';
   title = '';
+  linkUrl = '';
+  linkTitle = '';
+  linkNote = '';
   excerpt = '';
   content = '';
   coverImageUrl = '';
   tagsInput = '';
+  trailTitle = '';
   saving = false;
   uploading = false;
   loading = false;
@@ -77,11 +82,18 @@ export class PostEditorComponent implements OnInit, AfterViewInit {
     this.loading = true;
     this.postService.getForEditing(id).subscribe({
       next: (post) => {
+        if (post.sourceUrl) {
+          this.mode = 'LINK';
+          this.linkUrl = post.sourceUrl;
+          this.linkTitle = post.title;
+          this.linkNote = post.excerpt ?? post.content;
+        }
         this.title = post.title;
         this.excerpt = post.excerpt ?? '';
         this.content = post.content;
         this.coverImageUrl = post.coverImageUrl ?? '';
         this.tagsInput = post.tags.join(', ');
+        this.trailTitle = post.trail?.title ?? '';
         if (this.quill) this.quill.root.innerHTML = this.content;
         this.loading = false;
       },
@@ -93,6 +105,10 @@ export class PostEditorComponent implements OnInit, AfterViewInit {
   }
 
   save(publish: boolean): void {
+    if (this.mode === 'LINK') {
+      this.saveLink();
+      return;
+    }
     if (this.loading) return;
     this.content = this.quill?.root.innerHTML ?? this.content;
     if (!this.title.trim() || !this.content.trim()) {
@@ -109,6 +125,7 @@ export class PostEditorComponent implements OnInit, AfterViewInit {
       content: this.content,
       coverImageUrl: this.coverImageUrl.trim() || undefined,
       tags,
+      trailTitle: this.trailTitle.trim() || undefined,
       publish
     };
 
@@ -124,6 +141,27 @@ export class PostEditorComponent implements OnInit, AfterViewInit {
       error: (err) => {
         this.saving = false;
         this.error = err?.error?.message ?? 'Something went wrong saving your post.';
+      }
+    });
+  }
+
+  saveLink(): void {
+    const url = this.linkUrl.trim();
+    if (!url || this.saving || this.loading) return;
+    this.saving = true;
+    this.error = '';
+    const request = { url, title: this.linkTitle.trim(), note: this.linkNote.trim() };
+    const operation = this.postId
+      ? this.postService.updateSharedLink(this.postId, request)
+      : this.postService.shareLink(request);
+    operation.subscribe({
+      next: post => {
+        this.saving = false;
+        this.router.navigate(['/post', post.slug]);
+      },
+      error: err => {
+        this.saving = false;
+        this.error = err?.error?.message ?? 'This URL could not be shared.';
       }
     });
   }

@@ -1,15 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { SponsorshipService } from '../../core/services/sponsorship.service';
 import { Sponsorship } from '../../core/models/sponsorship.model';
 import { ModerationService } from '../../core/services/moderation.service';
-import { AdminUser, ModerationComment } from '../../core/models/moderation.model';
+import { AdminPost, AdminUser, ModerationComment } from '../../core/models/moderation.model';
+import { Group, GroupService } from '../../core/services/group.service';
 
 @Component({
   selector: 'wb-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
 })
@@ -17,6 +19,12 @@ export class AdminDashboardComponent implements OnInit {
   sponsorships: Sponsorship[] = [];
   flaggedComments: ModerationComment[] = [];
   users: AdminUser[] = [];
+  posts: AdminPost[] = [];
+  groups: Group[] = [];
+  userSearch = '';
+  postSearch = '';
+  groupSearch = '';
+  moderationError = '';
   loading = true;
   showForm = false;
   editingId?: number;
@@ -35,7 +43,7 @@ export class AdminDashboardComponent implements OnInit {
   placements: Sponsorship['placement'][] = ['FEED_BANNER', 'SIDEBAR', 'NEWS_TICKER', 'POST_INLINE'];
   statuses: Sponsorship['status'][] = ['DRAFT', 'ACTIVE', 'PAUSED', 'ENDED'];
 
-  constructor(private sponsorshipService: SponsorshipService, private moderation: ModerationService) {}
+  constructor(private sponsorshipService: SponsorshipService, private moderation: ModerationService, private groupService: GroupService) {}
 
   ngOnInit(): void {
     this.load();
@@ -51,7 +59,38 @@ export class AdminDashboardComponent implements OnInit {
       error: () => (this.loading = false)
     });
     this.moderation.flaggedComments().subscribe({ next: (items) => this.flaggedComments = items });
-    this.moderation.users().subscribe({ next: (items) => this.users = items });
+    this.searchUsers('');
+    this.searchPosts('');
+    this.groupService.list().subscribe({ next: items => this.groups = items, error: () => this.moderationError = 'Groups could not be loaded.' });
+  }
+
+  searchUsers(query: string): void {
+    this.userSearch = query;
+    this.moderation.users(query).subscribe({
+      next: items => this.users = items,
+      error: () => this.moderationError = 'Users could not be searched.'
+    });
+  }
+
+  searchPosts(query: string): void {
+    this.postSearch = query;
+    this.moderation.posts(0, 20, query).subscribe({
+      next: result => this.posts = result.content,
+      error: () => this.moderationError = 'Posts could not be searched.'
+    });
+  }
+
+  get filteredGroups(): Group[] {
+    const query = this.groupSearch.trim().toLowerCase();
+    return query ? this.groups.filter(group => `${group.name} ${group.description ?? ''} ${group.topics.join(' ')}`.toLowerCase().includes(query)) : this.groups;
+  }
+
+  deleteGroup(group: Group): void {
+    if (!confirm(`Delete “${group.name}” and all of its group posts?`)) return;
+    this.groupService.delete(group.id).subscribe({
+      next: () => this.groups = this.groups.filter(item => item.id !== group.id),
+      error: err => this.moderationError = err?.error?.message ?? 'Group could not be deleted.'
+    });
   }
 
   get totalImpressions(): number {
@@ -115,6 +154,35 @@ export class AdminDashboardComponent implements OnInit {
 
   toggleUser(user: AdminUser): void {
     this.moderation.setEnabled(user.id, !user.enabled).subscribe(updated => user.enabled = updated.enabled);
+  }
+
+  setRole(user: AdminUser, role: string): void {
+    if (user.role === role) return;
+    if (!confirm(`Change ${user.displayName}'s role to ${role}?`)) return;
+    this.moderation.setRole(user.id, role).subscribe((updated) => user.role = updated.role);
+  }
+
+  deleteUser(user: AdminUser): void {
+    if (!confirm(`Delete ${user.displayName}'s account and all their posts?`)) return;
+    this.moderation.deleteUser(user.id).subscribe(() => {
+      this.users = this.users.filter((item) => item.id !== user.id);
+      this.posts = this.posts.filter((post) => post.author.id !== user.id);
+    }, err => {
+      this.moderationError = err?.error?.message ?? 'This account could not be deleted.';
+    });
+  }
+
+  publishPost(post: AdminPost): void {
+    this.moderation.publishPost(post.id).subscribe((updated) => Object.assign(post, updated));
+  }
+
+  archivePost(post: AdminPost): void {
+    this.moderation.archivePost(post.id).subscribe((updated) => Object.assign(post, updated));
+  }
+
+  deletePost(post: AdminPost): void {
+    if (!confirm(`Delete "${post.title}"?`)) return;
+    this.moderation.deletePost(post.id).subscribe(() => this.posts = this.posts.filter((item) => item.id !== post.id));
   }
 
   private emptyForm() {

@@ -1,0 +1,43 @@
+<p class="wb-container trail-page__state" *ngIf="loading">Loading trail…</p>
+<section class="wb-container trail-page__state" *ngIf="error">
+  <h1>Trail unavailable</h1>
+  <p>{{ error }}</p>
+  <a routerLink="/trails" class="wb-btn wb-btn--ghost">Browse public trails</a>
+</section>
+
+<article class="wb-container trail-page" *ngIf="trail">
+  <header class="trail-page__head">
+    <a routerLink="/trails" class="trail-page__back">Story Trails</a>
+    <h1>{{ trail.title }}</h1>
+    <p>{{ trail.description }}</p>
+    <div class="trail-page__meta">
+      <span>{{ trail.storyCount }} {{ trail.storyCount === 1 ? 'story' : 'stories' }}</span>
+      <span *ngIf="trail.updatedAt">Updated {{ trail.updatedAt | date:'mediumDate' }}</span>
+    </div>
+  </header>
+
+  <section class="timeline">
+    <a class="timeline__item" *ngFor="let story of trail.stories" [routerLink]="['/post', story.slug]">
+      <span class="timeline__date">{{ story.publishedAt | date:'mediumDate' }}</span>
+      <div>
+        <span class="wb-tag" *ngIf="story.tags[0]">{{ story.tags[0] }}</span>
+        <h2>{{ story.title }}</h2>
+        <p>{{ story.excerpt }}</p>
+        <span class="timeline__byline">{{ story.author.displayName }} · {{ story.commentCount }} comments</span>
+      </div>
+    </a>
+  </section>
+
+  <p class="trail-page__empty" *ngIf="!trail.stories.length && !trail.communityPosts.length">No stories or community posts are attached to this trail yet.</p>
+
+  <section class="community-timeline" *ngIf="trail.communityPosts.length">
+    <h2>From the community</h2>
+    <article class="community-timeline__item wb-card" *ngFor="let post of trail.communityPosts">
+      <a *ngIf="post.canOpenGroup" class="community-timeline__group" [routerLink]="['/groups', post.groupId]">{{ post.groupName }}</a>
+      <span *ngIf="!post.canOpenGroup" class="community-timeline__group community-timeline__group--private">{{ post.groupName }} · Members only</span>
+      <h3>{{ post.title }}</h3>
+      <p>{{ post.body }}</p>
+          <small>{{ post.authorName }} · {{ post.commentCount }} {{ post.commentCount === 1 ? 'comment' : 'comments' }} · {{ post.createdAt | date:'mediumDate' }}</small>
+    </article>
+  </section>
+</article>

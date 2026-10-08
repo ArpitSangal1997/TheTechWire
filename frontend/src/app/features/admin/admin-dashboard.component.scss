@@ -21,8 +21,10 @@
 .stat__label { font-size: 12.5px; color: var(--slate); text-transform: uppercase; letter-spacing: 0.04em; }
 .stat__value { font-family: var(--font-display); font-size: 28px; }
 
+.admin__table-wrap { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 .admin__table {
   width: 100%;
+  min-width: 680px;
   border-collapse: collapse;
   overflow: hidden;
   font-size: 13.5px;
@@ -47,6 +49,8 @@
 .status--draft { background: var(--paper-dim); color: var(--slate); }
 .status--paused { background: var(--amber-soft); color: #8a5c10; }
 .status--ended { background: var(--coral-soft); color: var(--coral); }
+.status--published { background: var(--teal-soft); color: var(--teal); margin-left: 8px; }
+.status--archived { background: var(--amber-soft); color: #8a5c10; margin-left: 8px; }
 
 .admin__actions { display: flex; gap: 10px; }
 .admin__actions button { background: none; border: none; font-weight: 600; color: var(--teal); }
@@ -56,9 +60,12 @@
 .admin__moderation { padding-top: 0; }
 .admin__panel { margin: 24px 0; padding: 24px; }
 .admin__panel h3 { margin-top: 0; }
+.admin__search { width: 100%; margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; }
+.admin__error { color: var(--coral); }
 .moderation-row { display: flex; justify-content: space-between; gap: 20px; padding: 16px 0; border-top: 1px solid var(--line); }
 .moderation-row p { margin: 6px 0; }
 .moderation-row small { display: block; color: var(--slate); }
+.post-row strong { display: inline-block; max-width: 560px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; white-space: nowrap; }
 
 /* Form modal */
 .overlay {
@@ -80,5 +87,11 @@
 
 @media (max-width: 760px) {
   .admin__stats { grid-template-columns: 1fr; }
-  .admin__table { display: block; overflow-x: auto; }
+  .admin { padding: 28px 16px 56px; }
+  .admin__panel { padding: 16px; }
+  .moderation-row { flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+  .moderation-row > div { min-width: 0; flex: 1 1 190px; overflow-wrap: anywhere; }
+  .moderation-row > button { flex: 0 0 auto; }
+  .admin__actions { flex-wrap: wrap; }
+  .post-row strong { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 }

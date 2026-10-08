@@ -1,7 +1,4 @@
-.gk {
-  padding: 44px 24px 80px;
-  max-width: 820px;
-}
+.gk { padding: 44px 24px 80px; max-width: 980px; }
 
 .gk__head { margin-bottom: 24px; }
 .gk__head h1 { font-size: 32px; margin-top: 6px; }
@@ -23,13 +20,15 @@
   color: var(--slate);
 }
 .gk__tabs button.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.gk__status { display: flex; justify-content: space-between; color: var(--slate); font: 12px var(--font-mono); margin-bottom: 12px; }
+.gk__status button { border: 0; background: none; color: var(--teal); font: inherit; text-decoration: underline; }
 
 .gk__list { list-style: none; margin: 0; padding: 0; }
 
 .gk__item {
   display: flex;
   gap: 16px;
-  align-items: center;
+  align-items: flex-start;
   padding: 16px 0;
   border-bottom: 1px solid var(--line);
   cursor: pointer;
@@ -59,6 +58,8 @@
   letter-spacing: 0.04em;
 }
 .gk__title { font-size: 17px; margin: 4px 0 4px; transition: color 0.15s ease; }
+.gk__description { color: var(--slate); font-size: 13.5px; line-height: 1.45; margin: 0 0 8px; }
+.gk__meta { display: flex; gap: 12px; align-items: center; color: var(--slate); font-size: 12px; }
 .gk__link { font-size: 12.5px; color: var(--amber); font-weight: 600; }
 
 .gk__loading, .gk__empty {
@@ -66,3 +67,5 @@
   text-align: center;
   padding: 40px 0;
 }
+.gk__error { padding: 16px; border-radius: var(--radius-sm); background: var(--coral-soft); color: var(--coral); }
+@media (max-width: 560px) { .gk { padding: 32px 16px 56px; } .gk__thumb { width: 68px; height: 68px; } .gk__meta { align-items: flex-start; flex-direction: column; gap: 3px; } }

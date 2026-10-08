@@ -23,35 +23,37 @@
     </div>
   </div>
 
-  <table class="admin__table wb-card" *ngIf="!loading">
-    <thead>
-      <tr>
-        <th>Brand</th>
-        <th>Headline</th>
-        <th>Placement</th>
-        <th>Status</th>
-        <th>Window</th>
-        <th>Impr.</th>
-        <th>Clicks</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let s of sponsorships">
-        <td><strong>{{ s.brandName }}</strong></td>
-        <td class="admin__truncate">{{ s.headline }}</td>
-        <td><span class="wb-tag">{{ s.placement }}</span></td>
-        <td><span class="status status--{{ s.status.toLowerCase() }}">{{ s.status }}</span></td>
-        <td class="admin__mono">{{ s.startDate }} → {{ s.endDate }}</td>
-        <td>{{ s.impressions }}</td>
-        <td>{{ s.clicks }}</td>
-        <td class="admin__actions">
-          <button (click)="openEdit(s)">Edit</button>
-          <button class="danger" (click)="remove(s)">Remove</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="admin__table-wrap" *ngIf="!loading" role="region" aria-label="Brand deals" tabindex="0">
+    <table class="admin__table wb-card">
+      <thead>
+        <tr>
+          <th>Brand</th>
+          <th>Headline</th>
+          <th>Placement</th>
+          <th>Status</th>
+          <th>Window</th>
+          <th>Impr.</th>
+          <th>Clicks</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of sponsorships">
+          <td><strong>{{ s.brandName }}</strong></td>
+          <td class="admin__truncate">{{ s.headline }}</td>
+          <td><span class="wb-tag">{{ s.placement }}</span></td>
+          <td><span class="status status--{{ s.status.toLowerCase() }}">{{ s.status }}</span></td>
+          <td class="admin__mono">{{ s.startDate }} → {{ s.endDate }}</td>
+          <td>{{ s.impressions }}</td>
+          <td>{{ s.clicks }}</td>
+          <td class="admin__actions">
+            <button (click)="openEdit(s)">Edit</button>
+            <button class="danger" (click)="remove(s)">Remove</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
   <p *ngIf="!loading && !sponsorships.length" class="admin__empty">
     No brand deals yet — click "New brand deal" to set up your first sponsored placement.
@@ -110,6 +112,7 @@
 
 <div class="wb-container admin admin__moderation">
   <header class="admin__head"><div><span class="wb-eyebrow">Trust & safety</span><h2>Moderation</h2><p>Review flagged comments and suspend abusive accounts.</p></div></header>
+  <p *ngIf="moderationError" class="admin__error">{{ moderationError }}</p>
   <section class="wb-card admin__panel">
     <h3>Flagged comments ({{ flaggedComments.length }})</h3>
     <p *ngIf="!flaggedComments.length" class="admin__empty">No flagged comments.</p>
@@ -120,9 +123,48 @@
   </section>
   <section class="wb-card admin__panel">
     <h3>Users ({{ users.length }})</h3>
+    <input class="admin__search" [(ngModel)]="userSearch" (ngModelChange)="searchUsers($event)" placeholder="Search users by name, handle, or email">
+    <p *ngIf="userSearch && !users.length" class="admin__empty">No users match that search.</p>
     <div class="moderation-row" *ngFor="let user of users">
       <div><strong>{{ user.displayName }}</strong> <span class="comment__handle">{{ '@' + user.handle }}</span><small>{{ user.email }} · {{ user.role }}</small></div>
-      <button (click)="toggleUser(user)">{{ user.enabled ? 'Suspend' : 'Restore' }}</button>
+      <div class="admin__actions">
+        <button (click)="toggleUser(user)">{{ user.enabled ? 'Suspend' : 'Restore' }}</button>
+        <button class="danger" (click)="deleteUser(user)">Delete account</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="wb-card admin__panel">
+    <h3>Posts ({{ posts.length }})</h3>
+    <input class="admin__search" [(ngModel)]="postSearch" (ngModelChange)="searchPosts($event)" placeholder="Search posts by title or author">
+    <p *ngIf="!posts.length" class="admin__empty">No posts found.</p>
+    <div class="moderation-row post-row" *ngFor="let post of posts">
+      <div>
+        <strong>{{ post.title }}</strong>
+        <span class="status status--{{ post.status.toLowerCase() }}">{{ post.status }}</span>
+        <small>By {{ post.author.displayName }} · {{ post.commentCount }} comments · {{ post.viewCount }} views</small>
+      </div>
+      <div class="admin__actions">
+        <button *ngIf="post.status !== 'PUBLISHED'" (click)="publishPost(post)">Publish</button>
+        <button *ngIf="post.status === 'PUBLISHED'" (click)="archivePost(post)">Archive</button>
+        <button class="danger" (click)="deletePost(post)">Delete</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="wb-card admin__panel">
+    <h3>Groups ({{ filteredGroups.length }}<span *ngIf="groupSearch"> of {{ groups.length }}</span>)</h3>
+    <input class="admin__search" [(ngModel)]="groupSearch" placeholder="Search groups or topics">
+    <p *ngIf="!filteredGroups.length" class="admin__empty">No groups match that search.</p>
+    <div class="moderation-row" *ngFor="let group of filteredGroups">
+      <div>
+        <strong>{{ group.name }}</strong>
+        <small>{{ group.visibility }} · {{ group.memberCount }} members · Created by {{ group.creatorName }} (&#64;{{ group.creatorHandle }})</small>
+      </div>
+      <div class="admin__actions">
+        <a [routerLink]="['/groups', group.id]">Open</a>
+        <button class="danger" (click)="deleteGroup(group)">Delete group</button>
+      </div>
     </div>
   </section>
 </div>

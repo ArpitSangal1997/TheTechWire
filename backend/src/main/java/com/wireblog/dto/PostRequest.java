@@ -11,5 +11,6 @@ public record PostRequest(
         @NotBlank String content,
         String coverImageUrl,
         Set<String> tags,
+        @Size(max = 160) String trailTitle,
         boolean publish
 ) {}

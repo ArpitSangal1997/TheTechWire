@@ -31,6 +31,9 @@ public class Post {
     @Column(length = 500)
     private String excerpt;
 
+    @Column(length = 2048)
+    private String sourceUrl;
+
     @Lob
     @Column(nullable = false)
     private String content; // stored as HTML/markdown from the rich editor
@@ -40,6 +43,10 @@ public class Post {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "author_id")
     private User author;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trail_id")
+    private StoryTrail trail;
 
     @ElementCollection
     @CollectionTable(name = "post_tags", joinColumns = @JoinColumn(name = "post_id"))

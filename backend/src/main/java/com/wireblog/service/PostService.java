@@ -3,9 +3,13 @@ package com.wireblog.service;
 import com.wireblog.dto.*;
 import com.wireblog.exception.ApiException;
 import com.wireblog.model.Post;
+import com.wireblog.model.StoryTrail;
 import com.wireblog.model.User;
 import com.wireblog.repository.CommentRepository;
 import com.wireblog.repository.PostRepository;
+import com.wireblog.repository.ReaderPulseRepository;
+import com.wireblog.repository.ShareRepository;
+import com.wireblog.repository.StoryTrailRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -13,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 
+import java.net.URI;
 import java.text.Normalizer;
 import java.time.Instant;
 import java.util.LinkedHashSet;
@@ -33,12 +38,21 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final ReaderPulseRepository readerPulseRepository;
+    private final ShareRepository shareRepository;
+    private final StoryTrailRepository storyTrailRepository;
     private final CurrentUserResolver currentUserResolver;
 
     public PostService(PostRepository postRepository, CommentRepository commentRepository,
+                        ReaderPulseRepository readerPulseRepository,
+                        ShareRepository shareRepository,
+                        StoryTrailRepository storyTrailRepository,
                         CurrentUserResolver currentUserResolver) {
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
+        this.readerPulseRepository = readerPulseRepository;
+        this.shareRepository = shareRepository;
+        this.storyTrailRepository = storyTrailRepository;
         this.currentUserResolver = currentUserResolver;
     }
 
@@ -53,6 +67,7 @@ public class PostService {
                 .content(sanitizeContent(req.content()))
                 .coverImageUrl(req.coverImageUrl())
                 .tags(req.tags())
+                .trail(resolveTrail(req.trailTitle()))
                 .author(author)
                 .status(req.publish() ? Post.PostStatus.PUBLISHED : Post.PostStatus.DRAFT)
                 .build();
@@ -61,6 +76,55 @@ public class PostService {
 
         post = postRepository.save(post);
         return toDetail(post);
+    }
+
+    @Transactional
+    public PostDetailResponse shareLink(ShareLinkRequest request) {
+        User author = currentUserResolver.requireCurrentUser();
+        String sourceUrl = validateSourceUrl(request.url());
+        String note = request.note() == null ? "" : request.note().trim();
+        String title = request.title() == null || request.title().isBlank()
+                ? URI.create(sourceUrl).getHost().replaceFirst("^www\\.", "")
+                : request.title().trim();
+        String safeNote = Jsoup.clean(note, Safelist.none());
+        Post post = Post.builder()
+                .title(title)
+                .slug(uniqueSlug(title))
+                .excerpt(safeNote.isBlank() ? null : safeNote)
+                .content(safeNote)
+                .sourceUrl(sourceUrl)
+                .tags(Set.of())
+                .author(author)
+                .status(Post.PostStatus.PUBLISHED)
+                .publishedAt(Instant.now())
+                .build();
+        return toDetail(postRepository.save(post));
+    }
+
+    @Transactional
+    public PostDetailResponse updateSharedLink(Long postId, ShareLinkRequest request) {
+        User author = currentUserResolver.requireCurrentUser();
+        Post post = requirePost(postId);
+        if (!post.getAuthor().getId().equals(author.getId())) {
+            throw ApiException.forbidden("You can only edit your own posts.");
+        }
+        if (post.getSourceUrl() == null) {
+            throw ApiException.badRequest("This story is not a shared link.");
+        }
+        String sourceUrl = validateSourceUrl(request.url());
+        String note = request.note() == null ? "" : request.note().trim();
+        String safeNote = Jsoup.clean(note, Safelist.none());
+        String title = request.title() == null || request.title().isBlank()
+                ? URI.create(sourceUrl).getHost().replaceFirst("^www\\.", "")
+                : request.title().trim();
+        if (!post.getTitle().equals(title)) {
+            post.setTitle(title);
+            post.setSlug(uniqueSlug(title));
+        }
+        post.setSourceUrl(sourceUrl);
+        post.setExcerpt(safeNote.isBlank() ? null : safeNote);
+        post.setContent(safeNote);
+        return toDetail(postRepository.save(post));
     }
 
     @Transactional
@@ -77,6 +141,7 @@ public class PostService {
         post.setContent(sanitizeContent(req.content()));
         post.setCoverImageUrl(req.coverImageUrl());
         post.setTags(req.tags());
+        post.setTrail(resolveTrail(req.trailTitle()));
 
         if (req.publish() && post.getStatus() != Post.PostStatus.PUBLISHED) {
             post.setStatus(Post.PostStatus.PUBLISHED);
@@ -93,7 +158,7 @@ public class PostService {
         if (!post.getAuthor().getId().equals(user.getId())) {
             throw ApiException.forbidden("You can only delete your own posts.");
         }
-        postRepository.delete(post);
+        deletePostGraph(post);
     }
 
     @Transactional
@@ -156,6 +221,36 @@ public class PostService {
         return toSummary(postRepository.save(post));
     }
 
+    @Transactional(readOnly = true)
+    public Page<AdminPostResponse> adminPosts(Pageable pageable, String query) {
+        Page<Post> posts = query == null || query.isBlank()
+                ? postRepository.findAll(pageable)
+                : postRepository.searchForAdmin(query.trim(), pageable);
+        return posts.map(this::toAdminPost);
+    }
+
+    @Transactional
+    public AdminPostResponse adminPublish(Long postId) {
+        Post post = requirePost(postId);
+        if (post.getStatus() != Post.PostStatus.PUBLISHED) {
+            post.setStatus(Post.PostStatus.PUBLISHED);
+            post.setPublishedAt(Instant.now());
+        }
+        return toAdminPost(postRepository.save(post));
+    }
+
+    @Transactional
+    public AdminPostResponse adminArchive(Long postId) {
+        Post post = requirePost(postId);
+        post.setStatus(Post.PostStatus.ARCHIVED);
+        return toAdminPost(postRepository.save(post));
+    }
+
+    @Transactional
+    public void adminDelete(Long postId) {
+        deletePostGraph(requirePost(postId));
+    }
+
     void incrementShareCount(Post post) {
         post.setShareCount(post.getShareCount() + 1);
         postRepository.save(post);
@@ -182,11 +277,28 @@ public class PostService {
         return Jsoup.clean(content, POST_HTML);
     }
 
-    private PostSummaryResponse toSummary(Post p) {
+    private String validateSourceUrl(String value) {
+        if (value == null || value.isBlank() || value.length() > 2048) {
+            throw ApiException.badRequest("Enter a valid story URL (up to 2048 characters).");
+        }
+        try {
+            URI uri = URI.create(value.trim());
+            String scheme = uri.getScheme();
+            if (uri.getHost() == null || scheme == null
+                    || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
+                throw ApiException.badRequest("Story URLs must start with http:// or https://.");
+            }
+            return uri.toASCIIString();
+        } catch (IllegalArgumentException ex) {
+            throw ApiException.badRequest("Enter a valid http:// or https:// story URL.");
+        }
+    }
+
+    PostSummaryResponse toSummary(Post p) {
         long commentCount = commentRepository.countByPostId(p.getId());
         return new PostSummaryResponse(p.getId(), p.getTitle(), p.getSlug(), p.getExcerpt(), p.getCoverImageUrl(),
-                copyTags(p), p.getStatus().name(), toAuthor(p.getAuthor()), p.getViewCount(), p.getShareCount(),
-                commentCount, p.getPublishedAt());
+            p.getSourceUrl(), copyTags(p), p.getStatus().name(), toAuthor(p.getAuthor()), p.getViewCount(), p.getShareCount(),
+                commentCount, toTrailRef(p.getTrail()), p.getPublishedAt());
     }
 
     private Page<PostSummaryResponse> summarize(Page<Post> posts) {
@@ -199,15 +311,15 @@ public class PostService {
 
     private PostSummaryResponse toSummary(Post p, long commentCount) {
         return new PostSummaryResponse(p.getId(), p.getTitle(), p.getSlug(), p.getExcerpt(), p.getCoverImageUrl(),
-                copyTags(p), p.getStatus().name(), toAuthor(p.getAuthor()), p.getViewCount(), p.getShareCount(),
-                commentCount, p.getPublishedAt());
+            p.getSourceUrl(), copyTags(p), p.getStatus().name(), toAuthor(p.getAuthor()), p.getViewCount(), p.getShareCount(),
+                commentCount, toTrailRef(p.getTrail()), p.getPublishedAt());
     }
 
     private PostDetailResponse toDetail(Post p) {
         long commentCount = commentRepository.countByPostId(p.getId());
         return new PostDetailResponse(p.getId(), p.getTitle(), p.getSlug(), p.getExcerpt(), p.getContent(), p.getCoverImageUrl(),
-                copyTags(p), p.getStatus().name(), toAuthor(p.getAuthor()), p.getViewCount(), p.getShareCount(), commentCount,
-                p.getPublishedAt(), p.getUpdatedAt());
+            p.getSourceUrl(), copyTags(p), p.getStatus().name(), toAuthor(p.getAuthor()), p.getViewCount(), p.getShareCount(), commentCount,
+                toTrailRef(p.getTrail()), p.getPublishedAt(), p.getUpdatedAt());
     }
 
     private Set<String> copyTags(Post p) {
@@ -218,8 +330,49 @@ public class PostService {
         return new AuthorResponse(u.getId(), u.getDisplayName(), u.getHandle(), u.getAvatarUrl());
     }
 
+    private AdminPostResponse toAdminPost(Post p) {
+        long commentCount = commentRepository.countByPostId(p.getId());
+        return new AdminPostResponse(p.getId(), p.getTitle(), p.getSlug(), p.getStatus().name(), toAuthor(p.getAuthor()),
+                toTrailRef(p.getTrail()), p.getViewCount(), p.getShareCount(), commentCount, p.getCreatedAt(),
+                p.getPublishedAt(), p.getUpdatedAt());
+    }
+
+    private StoryTrailRefResponse toTrailRef(StoryTrail trail) {
+        if (trail == null) return null;
+        return new StoryTrailRefResponse(trail.getId(), trail.getTitle(), trail.getSlug());
+    }
+
+    private StoryTrail resolveTrail(String title) {
+        if (title == null || title.isBlank()) return null;
+        String cleaned = title.trim();
+        return storyTrailRepository.findByTitleIgnoreCase(cleaned)
+                .orElseGet(() -> storyTrailRepository.save(StoryTrail.builder()
+                        .title(cleaned)
+                        .slug(uniqueTrailSlug(cleaned))
+                        .description("Follow the latest reporting and context on " + cleaned + ".")
+                        .build()));
+    }
+
+    private String uniqueTrailSlug(String title) {
+        String base = slugify(title);
+        String candidate = base;
+        int suffix = 1;
+        while (storyTrailRepository.existsBySlug(candidate)) {
+            candidate = base + "-" + (++suffix);
+        }
+        return candidate;
+    }
+
     Post requirePost(Long id) {
         return postRepository.findById(id).orElseThrow(() -> ApiException.notFound("Post not found."));
+    }
+
+    public void deletePostGraph(Post post) {
+        Long postId = post.getId();
+        shareRepository.deleteByPostId(postId);
+        readerPulseRepository.deleteByPostId(postId);
+        commentRepository.deleteByPostId(postId);
+        postRepository.delete(post);
     }
 
     private Post requireOwnedPost(Long id) {

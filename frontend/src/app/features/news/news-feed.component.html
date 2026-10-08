@@ -11,13 +11,19 @@
     </button>
   </div>
 
-  <ul class="gk__list" *ngIf="!loading; else loadingTpl">
-    <li class="gk__item" *ngFor="let h of headlines" (click)="open(h.sourceUrl)">
+  <div class="gk__status" *ngIf="!loading">
+    <span>{{ headlines.length }} latest stories</span>
+    <button type="button" (click)="load()">Refresh</button>
+  </div>
+  <p class="gk__error" *ngIf="error">{{ error }}</p>
+  <ul class="gk__list" *ngIf="!loading && !error">
+    <li class="gk__item" *ngFor="let h of headlines" (click)="open(h.sourceUrl)" tabindex="0" (keyup.enter)="open(h.sourceUrl)">
       <div class="gk__thumb" *ngIf="h.imageUrl" [style.backgroundImage]="'url(' + h.imageUrl + ')'"></div>
       <div class="gk__thumb gk__thumb--placeholder" *ngIf="!h.imageUrl">📰</div>
       <div class="gk__text">
         <span class="gk__source">{{ h.sourceName }}</span>
         <h3 class="gk__title">{{ h.title }}</h3>
+        <p class="gk__description" *ngIf="h.description">{{ h.description }}</p>
         <span class="gk__link">Read on {{ h.sourceName }} ↗</span>
       </div>
     </li>

@@ -6,6 +6,7 @@ public record AuthResponse(
         String displayName,
         String handle,
         String avatarUrl,
+        String bio,
         String role,
         boolean emailVerified
 ) {}

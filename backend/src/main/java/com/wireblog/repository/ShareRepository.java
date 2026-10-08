@@ -8,4 +8,7 @@ import java.util.List;
 public interface ShareRepository extends JpaRepository<Share, Long> {
     List<Share> findBySharedToIdOrderByCreatedAtDesc(Long userId);
     List<Share> findByPostId(Long postId);
+    void deleteByPostId(Long postId);
+    void deleteBySharedById(Long userId);
+    void deleteBySharedToId(Long userId);
 }

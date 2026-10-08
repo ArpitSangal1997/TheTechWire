@@ -37,6 +37,14 @@ export class PostService {
     return this.http.post<PostDetail>(this.baseUrl, payload);
   }
 
+  shareLink(payload: { url: string; title?: string; note?: string }): Observable<PostDetail> {
+    return this.http.post<PostDetail>(`${this.baseUrl}/share-link`, payload);
+  }
+
+  updateSharedLink(id: number, payload: { url: string; title?: string; note?: string }): Observable<PostDetail> {
+    return this.http.put<PostDetail>(`${this.baseUrl}/${id}/share-link`, payload);
+  }
+
   update(id: number, payload: PostRequest): Observable<PostDetail> {
     return this.http.put<PostDetail>(`${this.baseUrl}/${id}`, payload);
   }

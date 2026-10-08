@@ -13,6 +13,7 @@ import { NewsHeadline } from '../../core/models/news.model';
 export class NewsFeedComponent implements OnInit {
   headlines: NewsHeadline[] = [];
   loading = true;
+  error = '';
   categories = ['general', 'business', 'technology', 'sports', 'science', 'health'];
   activeCategory = 'general';
 
@@ -29,12 +30,16 @@ export class NewsFeedComponent implements OnInit {
 
   load(): void {
     this.loading = true;
+    this.error = '';
     this.newsService.headlines(this.activeCategory === 'general' ? undefined : this.activeCategory).subscribe({
       next: (items) => {
         this.headlines = items;
         this.loading = false;
       },
-      error: () => (this.loading = false)
+      error: () => {
+        this.loading = false;
+        this.error = 'The live news service is unavailable. Please try again shortly.';
+      }
     });
   }
 

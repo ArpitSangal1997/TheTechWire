@@ -10,6 +10,8 @@ import { CommentItem } from '../../core/models/comment.model';
 import { ShareDialogComponent } from '../../shared/components/share-dialog/share-dialog.component';
 import { SponsorshipService } from '../../core/services/sponsorship.service';
 import { Sponsorship } from '../../core/models/sponsorship.model';
+import { ReaderPulse } from '../../core/models/reader-pulse.model';
+import { ReaderPulseService } from '../../core/services/reader-pulse.service';
 
 @Component({
   selector: 'wb-post-detail',
@@ -28,12 +30,16 @@ export class PostDetailComponent implements OnInit {
   showShare = false;
   posting = false;
   inlineAds: Sponsorship[] = [];
+  pulse?: ReaderPulse;
+  selectedPulse?: string;
+  pulseLoading = false;
 
   constructor(
     private route: ActivatedRoute,
     private postService: PostService,
     private commentService: CommentService,
     private sponsorshipService: SponsorshipService,
+    private readerPulseService: ReaderPulseService,
     public auth: AuthService
   ) {}
 
@@ -43,6 +49,8 @@ export class PostDetailComponent implements OnInit {
       next: (post) => {
         this.post = post;
         this.loading = false;
+        this.selectedPulse = sessionStorage.getItem(this.pulseStorageKey(post.id)) ?? undefined;
+        this.loadPulse();
         this.loadComments();
       },
       error: () => (this.loading = false)
@@ -61,7 +69,36 @@ export class PostDetailComponent implements OnInit {
 
   loadComments(): void {
     if (!this.post) return;
-    this.commentService.forPost(this.post.id).subscribe((c) => (this.comments = c));
+    const postId = this.post.id;
+    this.commentService.forPost(postId).subscribe((comments) => {
+      this.comments = comments;
+      if (this.post?.id === postId) {
+        this.post.commentCount = comments.reduce((total, comment) => total + 1 + comment.replies.length, 0);
+      }
+    });
+  }
+
+  loadPulse(): void {
+    if (!this.post) return;
+    this.readerPulseService.get(this.post.id).subscribe((pulse) => (this.pulse = pulse));
+  }
+
+  votePulse(choice: string): void {
+    if (!this.post || this.selectedPulse || this.pulseLoading) return;
+    this.pulseLoading = true;
+    this.readerPulseService.vote(this.post.id, choice).subscribe({
+      next: (pulse) => {
+        this.pulse = pulse;
+        this.selectedPulse = choice;
+        sessionStorage.setItem(this.pulseStorageKey(this.post!.id), choice);
+        this.pulseLoading = false;
+      },
+      error: () => (this.pulseLoading = false)
+    });
+  }
+
+  private pulseStorageKey(postId: number): string {
+    return `wire-pulse-${postId}`;
   }
 
   submitComment(): void {

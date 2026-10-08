@@ -19,6 +19,19 @@
     </div>
   </a>
 
+  <section class="trail-strip" *ngIf="trails.length">
+    <div class="trail-strip__head">
+      <span class="wb-eyebrow">Story Trails</span>
+      <a routerLink="/trails">View all</a>
+    </div>
+    <div class="trail-strip__grid">
+      <a class="trail-mini wb-card" *ngFor="let trail of trails" [routerLink]="['/trails', trail.slug]">
+        <strong>{{ trail.title }}</strong>
+        <span>{{ trail.storyCount }} stories</span>
+      </a>
+    </div>
+  </section>
+
   <div class="home-layout">
     <div class="home-main">
       <div class="grid-head">
@@ -43,6 +56,7 @@
           <a [routerLink]="['/post', post.slug]" class="card__media" [style.backgroundImage]="post.coverImageUrl ? 'url(' + post.coverImageUrl + ')' : null"></a>
           <div class="card__body">
             <span class="wb-tag" *ngIf="post.tags[0]">{{ post.tags[0] }}</span>
+            <a class="card__trail" *ngIf="post.trail" [routerLink]="['/trails', post.trail.slug]">{{ post.trail.title }}</a>
             <a [routerLink]="['/post', post.slug]" class="card__title-link">
               <h3 class="card__title">{{ post.title }}</h3>
             </a>

@@ -10,12 +10,14 @@ public record PostDetailResponse(
         String excerpt,
         String content,
         String coverImageUrl,
+        String sourceUrl,
         Set<String> tags,
         String status,
         AuthorResponse author,
         long viewCount,
         long shareCount,
         long commentCount,
+        StoryTrailRefResponse trail,
         Instant publishedAt,
         Instant updatedAt
 ) {}

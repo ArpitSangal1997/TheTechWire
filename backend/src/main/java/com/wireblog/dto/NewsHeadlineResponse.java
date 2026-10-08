@@ -8,6 +8,7 @@ public record NewsHeadlineResponse(
         String sourceUrl,
         String sourceName,
         String imageUrl,
+        String description,
         String category,
         Instant publishedAt
 ) {}

@@ -1,0 +1,10 @@
+*.log
+.env
+.env.*
+!.env.example
+backend/uploads/
+data/
+**/node_modules/
+**/target/
+**/dist/
+frontend/.angular/

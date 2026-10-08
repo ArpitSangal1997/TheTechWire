@@ -1,0 +1,48 @@
+<main class="wb-container friends-page">
+  <header class="friends-page__header">
+    <span class="wb-eyebrow">Your community</span>
+    <h1>Friends</h1>
+    <p>Find people, send friend requests, and keep up with your connections.</p>
+  </header>
+
+  <section class="wb-card friends-page__search">
+    <label for="people-search">Find people</label>
+    <input id="people-search" [(ngModel)]="query" (ngModelChange)="search()" placeholder="Search by name or @handle" autocomplete="off">
+    <p *ngIf="query.trim().length < 2" class="friends-page__hint">Enter at least two characters to search.</p>
+    <article class="friend-row" *ngFor="let user of results">
+      <div><strong>{{ user.displayName }}</strong><small>&#64;{{ user.handle }}</small></div>
+      <button *ngIf="user.relationship === 'NONE'" class="wb-btn wb-btn--primary" (click)="add(user)">Add friend</button>
+      <span *ngIf="user.relationship === 'OUTGOING_REQUEST'" class="friend-row__status">Request sent</span>
+      <span *ngIf="user.relationship === 'INCOMING_REQUEST'" class="friend-row__status">Sent you a request</span>
+      <span *ngIf="user.relationship === 'FRIEND'" class="friend-row__status">Friend</span>
+    </article>
+    <p *ngIf="query.trim().length >= 2 && !results.length" class="friends-page__hint">No matching people found.</p>
+  </section>
+
+  <p *ngIf="error" class="friends-page__error">{{ error }}</p>
+
+  <section class="friends-page__columns">
+    <div class="wb-card friends-section">
+      <h2>Friend requests <span>{{ incoming.length }}</span></h2>
+      <p *ngIf="!incoming.length" class="friends-page__hint">No incoming requests.</p>
+      <article class="friend-row" *ngFor="let user of incoming">
+        <div><strong>{{ user.displayName }}</strong><small>&#64;{{ user.handle }}</small></div>
+        <div class="friend-row__actions"><button class="wb-btn wb-btn--primary" (click)="accept(user)">Accept</button><button class="friend-row__remove" (click)="remove(user)">Decline</button></div>
+      </article>
+      <h3 *ngIf="outgoing.length">Sent requests</h3>
+      <article class="friend-row" *ngFor="let user of outgoing">
+        <div><strong>{{ user.displayName }}</strong><small>&#64;{{ user.handle }}</small></div>
+        <div class="friend-row__actions"><span class="friend-row__status">Pending</span><button class="friend-row__remove" (click)="remove(user)">Cancel</button></div>
+      </article>
+    </div>
+
+    <div class="wb-card friends-section">
+      <h2>Your friends <span>{{ accepted.length }}</span></h2>
+      <p *ngIf="!accepted.length" class="friends-page__hint">Accepted friends will appear here.</p>
+      <article class="friend-row" *ngFor="let user of accepted">
+        <div><strong>{{ user.displayName }}</strong><small>&#64;{{ user.handle }}</small></div>
+        <button class="friend-row__remove" (click)="remove(user)">Remove</button>
+      </article>
+    </div>
+  </section>
+</main>

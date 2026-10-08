@@ -5,12 +5,20 @@
       <span class="masthead__word">The&nbsp;TechWire</span>
     </a>
 
-    <nav class="masthead__links">
-      <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{exact:true}">Front Page</a>
-      <a routerLink="/gk" routerLinkActive="is-active">GK Wire</a>
-      <a *ngIf="auth.isLoggedIn()" routerLink="/my-stories" routerLinkActive="is-active">My stories</a>
-      <a *ngIf="auth.isLoggedIn()" routerLink="/write" routerLinkActive="is-active">Write</a>
-      <a *ngIf="auth.isAdmin()" routerLink="/admin" routerLinkActive="is-active">Admin</a>
+    <button class="masthead__menu-toggle" type="button" (click)="menuOpen = !menuOpen"
+            [attr.aria-expanded]="menuOpen" aria-controls="primary-navigation">
+      {{ menuOpen ? 'Close' : 'Menu' }}
+    </button>
+
+    <nav id="primary-navigation" class="masthead__links" [class.masthead__links--open]="menuOpen">
+      <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{exact:true}" (click)="menuOpen = false">Front Page</a>
+      <a routerLink="/trails" routerLinkActive="is-active" (click)="menuOpen = false">Story Trails</a>
+      <a routerLink="/gk" routerLinkActive="is-active" (click)="menuOpen = false">GK Wire</a>
+      <a *ngIf="auth.isLoggedIn()" routerLink="/my-stories" routerLinkActive="is-active" (click)="menuOpen = false">My stories</a>
+      <a routerLink="/groups" routerLinkActive="is-active" (click)="menuOpen = false">Groups</a>
+      <a *ngIf="auth.isLoggedIn()" routerLink="/friends" routerLinkActive="is-active" (click)="menuOpen = false">Friends</a>
+      <a *ngIf="auth.isLoggedIn()" routerLink="/write" routerLinkActive="is-active" (click)="menuOpen = false">Write</a>
+      <a *ngIf="auth.isAdmin()" routerLink="/admin" routerLinkActive="is-active" (click)="menuOpen = false">Admin</a>
     </nav>
 
     <div class="masthead__actions">

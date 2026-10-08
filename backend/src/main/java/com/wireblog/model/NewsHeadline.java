@@ -32,6 +32,9 @@ public class NewsHeadline {
     @Column(columnDefinition = "TEXT")
     private String imageUrl;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Column(length = 80)
     private String category; // general, business, tech, sports, science...
 
