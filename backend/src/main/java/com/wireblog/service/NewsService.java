@@ -78,7 +78,7 @@ public class NewsService {
     }
 
     /** Refresh cached headlines every 15 minutes. */
-    @Scheduled(fixedRate = 15 * 60 * 1000)
+    @Scheduled(fixedRate = 15 * 60 * 1000, initialDelay = 15 * 60 * 1000)
     @Transactional
     public void refresh() {
         removeStaleHeadlines();
