@@ -1,6 +1,6 @@
 import { Component, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { NotificationItem } from '../../../core/models/notification.model';
@@ -17,7 +17,11 @@ export class NavbarComponent {
   notificationsOpen = false;
   notifications: NotificationItem[] = [];
 
-  constructor(public auth: AuthService, private notificationService: NotificationService) {
+  constructor(
+    public auth: AuthService,
+    private notificationService: NotificationService,
+    private router: Router
+  ) {
     effect(() => {
       if (this.auth.currentUser()) this.loadNotifications();
       else this.notifications = [];
@@ -46,6 +50,6 @@ export class NavbarComponent {
 
   logout(): void {
     this.auth.logout();
-    window.location.href = '/';
+    this.router.navigate(['/']);
   }
 }
