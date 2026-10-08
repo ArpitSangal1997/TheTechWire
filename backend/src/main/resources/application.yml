@@ -1,0 +1,86 @@
+﻿spring:
+  application:
+    name: wireblog-backend
+
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/wireblog}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: false
+
+server:
+  # Most managed hosts provide PORT dynamically.
+  port: ${PORT:8080}
+
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:4200}
+  cors:
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:4200,https://*.devtunnels.ms}
+  jwt:
+    secret: ${JWT_SECRET:dev-only-change-this-secret-before-deploying-please}
+    expiration-ms: 604800000   # 7 days
+  news:
+    api-key: ${NEWS_API_KEY:}
+    base-url: https://newsapi.org/v2/top-headlines
+    fallback-url: https://newsapi.org/v2/everything
+    query: india
+    country: in
+    max-age-hours: ${NEWS_MAX_AGE_HOURS:24}
+  upload:
+    dir: ${UPLOAD_DIR:uploads}
+    base-url: ${UPLOAD_BASE_URL:http://localhost:8080/uploads}
+
+---
+# Production profile - point at Postgres + read secrets from env vars
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+app:
+  frontend-url: ${FRONTEND_URL}
+  cors:
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS}
+  jwt:
+    secret: ${JWT_SECRET}
+  upload:
+    dir: ${UPLOAD_DIR:uploads}
+    base-url: ${UPLOAD_BASE_URL}
+  news:
+    api-key: ${NEWS_API_KEY}

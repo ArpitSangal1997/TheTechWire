@@ -7,68 +7,73 @@ Browser -> Angular static site -> Spring Boot API -> PostgreSQL
                               -> NewsAPI
 ```
 
-Use a static host for `frontend/` (Vercel, Netlify, Cloudflare Pages, or similar) and a Java host with a persistent disk for `backend/` (Render, Railway, Fly.io, or similar). Attach a managed PostgreSQL database to the backend host.
+For a free hobby deployment, host both services on Render and use an external PostgreSQL provider such as Neon. Render's free web service sleeps when idle and has ephemeral storage; its free PostgreSQL databases expire after 30 days. This setup is appropriate for a demo, not production.
 
-## 1. Deploy the backend
+## 1. Create a PostgreSQL database
 
-Create a web service with these settings:
+Create a PostgreSQL project with your database provider and keep its connection details private. Render and Neon are separate services, so use the provider's public connection host and require SSL. Construct `DB_URL` in JDBC format:
+
+```text
+jdbc:postgresql://<host>:5432/<database>?sslmode=require
+```
+
+Start with a new, empty database. The production profile runs Flyway migrations on startup.
+
+## 2. Deploy the backend on Render
+
+In Render, create a **Web Service** from the GitHub repository. Use:
 
 | Setting | Value |
 | --- | --- |
-| Root directory | `backend` |
-| Runtime | Java 17 |
-| Build command | `mvn -DskipTests package` |
-| Start command | `java -jar target/wireblog-backend-1.0.0.jar` |
-| Health-check path | `/actuator/health` |
+| Root Directory | `backend` |
+| Runtime | Docker |
+| Dockerfile Path | `Dockerfile` |
+| Docker Build Context Directory | `.` |
+| Instance Type | Free (demo use only) |
+| Health Check Path | `/actuator/health` |
 
-Add each variable listed in [`backend/.env.example`](backend/.env.example) to the host's encrypted environment-variable dashboard. Do **not** upload or commit a file containing production values.
+The Dockerfile builds the Java 17 Spring Boot application. Add the environment variables listed in [`backend/.env.example`](backend/.env.example) in Render's Environment tab. For the initial deployment, set `FRONTEND_URL` and `CORS_ALLOWED_ORIGIN_PATTERNS` to temporary values; update them after the static site is created.
 
-Important values:
+Use the exact external database connection values for `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`. Generate a unique `JWT_SECRET` with at least 32 random bytes. Enter the NewsAPI key in Render's private environment settings; never commit it. Leave uploads disabled for real user content until object storage is configured: Render's free filesystem is ephemeral, so uploaded images may disappear after a restart, sleep, or deploy.
 
-- Set `SPRING_PROFILES_ACTIVE=prod`.
-- Use the database provider's PostgreSQL connection details with the `jdbc:postgresql://` prefix for `DB_URL`. Prefer an internal/private URL when both services run on the same provider.
-- Generate `JWT_SECRET` with at least 32 random bytes, for example: `openssl rand -base64 48`. Never rotate it casually, because rotation logs everyone out.
-- Set `FRONTEND_URL` and `CORS_ALLOWED_ORIGIN_PATTERNS` to the exact public frontend origins. Include both apex and `www` only if both are actually used.
-- The current upload implementation writes to local disk. Mount a persistent volume and point `UPLOAD_DIR` at it. For multiple API replicas, migrate uploads to object storage before scaling.
+Deploy and note the service URL, for example `https://wireblog-api.onrender.com`. Check that `<service-url>/actuator/health` returns HTTP 200. The first request after an idle period can take a while while the free service wakes.
 
-After deployment, note the API URL, such as `https://api.example.com`. Verify `https://api.example.com/actuator/health` returns HTTP 200.
+## 3. Point the frontend at the deployed API
 
-## 2. Point the frontend at the deployed API
-
-Before building the frontend, change `frontend/src/environments/environment.prod.ts` so `apiUrl` is your API origin followed by `/api`, for example:
+Before deploying the frontend, change `frontend/src/environments/environment.prod.ts` so `apiUrl` is the Render service URL followed by `/api`, for example:
 
 ```ts
-apiUrl: 'https://api.example.com/api'
+apiUrl: 'https://wireblog-api.onrender.com/api'
 ```
 
 This value is compiled into the browser bundle. It is public configuration, not a secret, and changing it requires a new frontend build/deployment.
 
-Deploy the frontend with:
+Create a Render **Static Site** from the same repository:
 
 | Setting | Value |
 | --- | --- |
-| Root directory | `frontend` |
-| Build command | `npm ci && npm run build` |
-| Publish directory | `dist/frontend/browser` |
+| Root Directory | `frontend` |
+| Build Command | `npm ci && npm run build` |
+| Publish Directory | `dist/wireblog-frontend/browser` |
 
-Configure an SPA rewrite/fallback so all non-file routes serve `index.html`; otherwise refreshing a post URL will return 404.
+Add an SPA rewrite so all non-file routes serve `/index.html`; otherwise refreshing a story or group link may return 404.
 
-## 3. Configure the final API variables
+## 4. Configure the final API variables
 
-Once the frontend host assigns its real URL, set these backend variables and redeploy the backend:
+Once Render assigns the static site URL, update these backend variables and redeploy:
 
 ```dotenv
-FRONTEND_URL=https://www.example.com
-CORS_ALLOWED_ORIGIN_PATTERNS=https://www.example.com,https://example.com
-UPLOAD_BASE_URL=https://api.example.com/uploads
+FRONTEND_URL=https://wireblog.onrender.com
+CORS_ALLOWED_ORIGIN_PATTERNS=https://wireblog.onrender.com
+UPLOAD_BASE_URL=https://wireblog-api.onrender.com/uploads
 ```
 
-If the API is not served from `api.example.com`, replace it with the actual API service origin. `UPLOAD_BASE_URL` must be publicly reachable and must not contain `/api`.
+Replace the example hosts with the actual Render URLs. `UPLOAD_BASE_URL` must be publicly reachable and must not contain `/api`.
 
-## 4. Launch checks
+## 5. Launch checks
 
 - Confirm `/actuator/health` returns 200.
 - Register an account and confirm it signs in immediately.
 - Log in from the deployed frontend; browser developer tools should show no CORS errors.
-- Upload an image, redeploy the backend, and confirm the image still exists. If it does not, the disk is ephemeral and a persistent volume/object storage is required.
-- Enable automated database backups and perform one restore drill before accepting production data.
+- Do not upload important images while using Render's free ephemeral filesystem. Move uploads to object storage before relying on them.
+- Enable database backups and perform a restore test before storing important data.
