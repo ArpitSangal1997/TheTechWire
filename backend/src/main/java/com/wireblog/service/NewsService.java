@@ -111,15 +111,17 @@ public class NewsService {
         try {
             int saved = 0;
             for (String category : SUPPORTED_CATEGORIES) {
-                saved += refreshCategory(category);
+                int categorySaved = refreshCategory(category);
+                saved += categorySaved;
+                if (categorySaved == 0
+                        && repository.findTop50ByCategoryOrderByPublishedAtDesc(category).isEmpty()) {
+                    saved += refreshRssFeed(category, RSS_FEEDS.get(category));
+                }
             }
 
             if (saved == 0 && repository.findTop50ByOrderByPublishedAtDesc().isEmpty()) {
                 log.info("Top headlines returned no usable articles; trying fallback news search for query='{}'.", query);
-                int fallbackSaved = refreshFromUrl(fallbackSearchUrl(null), "fallback search", "general");
-                if (fallbackSaved == 0 && repository.findTop50ByOrderByPublishedAtDesc().isEmpty()) {
-                    refreshFromRssFeeds();
-                }
+                refreshFromUrl(fallbackSearchUrl(null), "fallback search", "general");
             }
 
             log.info("Refreshed news headlines. Cached headline count now {}.", repository.findTop50ByOrderByPublishedAtDesc().size());

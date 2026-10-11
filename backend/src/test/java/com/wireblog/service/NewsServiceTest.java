@@ -83,19 +83,17 @@ class NewsServiceTest {
     }
 
     @Test
-    void refreshUsesRssWhenNewsApiFallbackOnlyReturnsStaleArticles() {
+    void refreshUsesRssWhenNewsApiReturnsOnlyStaleArticles() {
         NewsHeadlineRepository repository = mock(NewsHeadlineRepository.class);
         when(repository.findTop50ByCategoryOrderByPublishedAtDesc(anyString())).thenReturn(List.of());
         when(repository.findTop50ByOrderByPublishedAtDesc()).thenReturn(List.of());
 
         RestTemplate restTemplate = new RestTemplate();
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
-        server.expect(ExpectedCount.times(6), requestTo(org.hamcrest.Matchers.containsString("/top-headlines")))
-                .andRespond(withSuccess("{\"status\":\"ok\",\"articles\":[]}", MediaType.APPLICATION_JSON));
         String staleArticle = """
                 {"status":"ok","articles":[{"title":"Old article","url":"https://www.bbc.com/news/old-article","publishedAt":"%s"}]}
                 """.formatted(Instant.now().minus(48, ChronoUnit.HOURS));
-        server.expect(requestTo(org.hamcrest.Matchers.containsString("/everything")))
+        server.expect(ExpectedCount.times(6), requestTo(org.hamcrest.Matchers.containsString("/top-headlines")))
                 .andRespond(withSuccess(staleArticle, MediaType.APPLICATION_JSON));
         server.expect(ExpectedCount.times(6), requestTo(org.hamcrest.Matchers.containsString("https://")))
                 .andRespond(withSuccess(rssFeed(), MediaType.APPLICATION_XML));
@@ -106,6 +104,39 @@ class NewsServiceTest {
 
         server.verify();
         verify(repository, times(6)).save(any());
+    }
+
+    @Test
+    void refreshUsesCategoryRssWhenThatCategoryIsEmptyButOtherCategoriesHaveHeadlines() {
+        NewsHeadlineRepository repository = mock(NewsHeadlineRepository.class);
+        NewsHeadline existingGeneralHeadline = NewsHeadline.builder()
+                .title("Existing general headline")
+                .sourceUrl("https://example.com/general")
+                .sourceName("Example")
+                .category("general")
+                .publishedAt(Instant.now())
+                .build();
+        when(repository.findTop50ByOrderByPublishedAtDesc()).thenReturn(List.of(existingGeneralHeadline));
+        when(repository.findTop50ByCategoryOrderByPublishedAtDesc(anyString()))
+                .thenReturn(List.of(existingGeneralHeadline));
+        when(repository.findTop50ByCategoryOrderByPublishedAtDesc("technology")).thenReturn(List.of());
+
+        RestTemplate restTemplate = new RestTemplate();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        server.expect(ExpectedCount.times(6), requestTo(org.hamcrest.Matchers.containsString("/top-headlines")))
+                .andRespond(withSuccess("{\"status\":\"ok\",\"articles\":[]}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://techcrunch.com/feed/"))
+                .andRespond(withSuccess(rssFeed(), MediaType.APPLICATION_XML));
+        NewsService service = serviceWithApiKey(repository);
+        ReflectionTestUtils.setField(service, "restTemplate", restTemplate);
+
+        service.refresh();
+
+        server.verify();
+        var savedHeadline = forClass(NewsHeadline.class);
+        verify(repository).save(savedHeadline.capture());
+        assertThat(savedHeadline.getValue().getCategory()).isEqualTo("technology");
+        assertThat(savedHeadline.getValue().getSourceName()).isEqualTo("TechCrunch");
     }
 
     private String rssFeed() {

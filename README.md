@@ -43,7 +43,7 @@ blogapp/
 - Public group discovery and readable discussions, with public follow or private request-to-join/invite-only membership.
 - Group topic tags, purposes, rules, Story Trail links, threaded comments, and admin-reviewed join requests.
 - Threaded story comments, comment flags, sharing, notifications, and Reader Pulse votes.
-- NewsAPI headline fetching with BBC/TechCrunch RSS fallback and local headline caching.
+- NewsAPI headline fetching with per-category BBC/TechCrunch RSS fallback when a category has no fresh headlines, plus local headline caching.
 - Admin tools for users, posts, flagged comments, and sponsorship placements.
 - Authenticated image uploads with type/signature checks, currently stored on local disk.
 
