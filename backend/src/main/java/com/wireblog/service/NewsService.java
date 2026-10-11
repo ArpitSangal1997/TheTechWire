@@ -51,10 +51,17 @@ public class NewsService {
     private static final Map<String, String> RSS_FEEDS = Map.of(
             "general", "https://feeds.bbci.co.uk/news/world/asia/india/rss.xml",
             "business", "https://feeds.bbci.co.uk/news/business/rss.xml",
-            "technology", "https://feeds.bbci.co.uk/news/technology/rss.xml",
+            "technology", "https://techcrunch.com/feed/",
             "sports", "https://feeds.bbci.co.uk/sport/rss.xml",
             "science", "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
             "health", "https://feeds.bbci.co.uk/news/health/rss.xml");
+    private static final Map<String, String> RSS_SOURCES = Map.of(
+            "general", "BBC News",
+            "business", "BBC News",
+            "technology", "TechCrunch",
+            "sports", "BBC News",
+            "science", "BBC News",
+            "health", "BBC News");
 
     private final NewsHeadlineRepository repository;
     private final RestTemplate restTemplate;
@@ -279,7 +286,7 @@ public class NewsService {
             repository.save(NewsHeadline.builder()
                     .title(title)
                     .sourceUrl(sourceUrl)
-                    .sourceName(sourceName == null || sourceName.isBlank() ? "BBC News" : sourceName)
+                    .sourceName(sourceName == null || sourceName.isBlank() ? RSS_SOURCES.get(category) : sourceName)
                     .description(cleanDescription(description == null ? null : Jsoup.parse(description).text()))
                     .category(category)
                     .publishedAt(publishedAt)

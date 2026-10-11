@@ -59,7 +59,7 @@ class NewsServiceTest {
 
         RestTemplate restTemplate = new RestTemplate();
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
-        server.expect(ExpectedCount.times(6), requestTo(org.hamcrest.Matchers.containsString("feeds.bbci.co.uk")))
+        server.expect(ExpectedCount.times(6), requestTo(org.hamcrest.Matchers.containsString("https://")))
                 .andRespond(withSuccess(rssFeed(), MediaType.APPLICATION_XML));
         NewsService service = new NewsService(repository);
         ReflectionTestUtils.setField(service, "restTemplate", restTemplate);
@@ -75,7 +75,8 @@ class NewsServiceTest {
                 .containsExactlyInAnyOrder("general", "business", "technology", "sports", "science", "health");
         assertThat(headlines.getAllValues()).allSatisfy(headline -> {
             assertThat(headline.getTitle()).isEqualTo("Test headline");
-            assertThat(headline.getSourceName()).isEqualTo("BBC News");
+            assertThat(headline.getSourceName())
+                    .isEqualTo("technology".equals(headline.getCategory()) ? "TechCrunch" : "BBC News");
             assertThat(headline.getDescription()).isEqualTo("A useful summary.");
             assertThat(headline.getSourceUrl()).isEqualTo("https://www.bbc.com/news/test-headline");
         });
@@ -96,7 +97,7 @@ class NewsServiceTest {
                 """.formatted(Instant.now().minus(48, ChronoUnit.HOURS));
         server.expect(requestTo(org.hamcrest.Matchers.containsString("/everything")))
                 .andRespond(withSuccess(staleArticle, MediaType.APPLICATION_JSON));
-        server.expect(ExpectedCount.times(6), requestTo(org.hamcrest.Matchers.containsString("feeds.bbci.co.uk")))
+        server.expect(ExpectedCount.times(6), requestTo(org.hamcrest.Matchers.containsString("https://")))
                 .andRespond(withSuccess(rssFeed(), MediaType.APPLICATION_XML));
         NewsService service = serviceWithApiKey(repository);
         ReflectionTestUtils.setField(service, "restTemplate", restTemplate);
