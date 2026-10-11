@@ -14,6 +14,7 @@ import { AuthService } from '../../core/services/auth.service';
 })
 export class GroupsComponent implements OnInit {
 	groups: Group[] = [];
+	loading = true;
 	name = '';
 	description = '';
 	visibility: GroupVisibility = 'PUBLIC';
@@ -31,9 +32,14 @@ export class GroupsComponent implements OnInit {
 	}
 
 	load(): void {
+		this.loading = true;
+		this.error = '';
 		this.service.list().subscribe({
-			next: groups => { this.groups = groups; this.error = ''; },
-			error: () => this.error = 'Groups could not be loaded.'
+			next: groups => { this.groups = groups; this.loading = false; },
+			error: () => {
+				this.loading = false;
+				this.error = 'Groups could not be loaded. The service may be waking up.';
+			}
 		});
 	}
 

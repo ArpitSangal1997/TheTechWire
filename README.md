@@ -43,7 +43,7 @@ blogapp/
 - Public group discovery and readable discussions, with public follow or private request-to-join/invite-only membership.
 - Group topic tags, purposes, rules, Story Trail links, threaded comments, and admin-reviewed join requests.
 - Threaded story comments, comment flags, sharing, notifications, and Reader Pulse votes.
-- NewsAPI headline fetching and local headline caching.
+- NewsAPI headline fetching with BBC RSS fallback and local headline caching.
 - Admin tools for users, posts, flagged comments, and sponsorship placements.
 - Authenticated image uploads with type/signature checks, currently stored on local disk.
 
@@ -56,7 +56,7 @@ Requirements: Java 17, Maven, Node.js/npm compatible with Angular 17, and Postgr
 
 	```powershell
 	cd backend
-	$env:NEWS_API_KEY="your_key_here" # optional; enables live headlines
+	$env:NEWS_API_KEY="your_key_here" # optional; enables NewsAPI headlines (BBC RSS is used as fallback)
 	mvn spring-boot:run
 	```
 

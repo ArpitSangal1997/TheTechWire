@@ -21,8 +21,9 @@
 		<button class="wb-btn wb-btn--primary" [disabled]="!name.trim()">Create group</button>
 	</form>
 	<p *ngIf="!auth.isLoggedIn()" class="wb-card groups__signin">Browse public communities below. <a routerLink="/login">Sign in</a> to follow a group or create one.</p>
-	<p class="error" *ngIf="error">{{error}}</p>
-	<p class="groups__empty" *ngIf="!groups.length && !error">No groups found yet. Start one around a topic you care about.</p>
+	<p *ngIf="loading" class="groups__empty" role="status">Loading groups…</p>
+	<p class="error" *ngIf="error">{{error}} <button type="button" class="wb-btn wb-btn--ghost" (click)="load()">Retry</button></p>
+	<p class="groups__empty" *ngIf="!loading && !groups.length && !error">No groups found yet. Start one around a topic you care about.</p>
 	<article class="wb-card" *ngFor="let group of groups">
 		<div>
 			<div class="groups__title">

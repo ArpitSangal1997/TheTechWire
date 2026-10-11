@@ -7,6 +7,10 @@ import com.wireblog.model.NewsHeadline;
 import com.wireblog.repository.NewsHeadlineRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.parser.Parser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -24,9 +28,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -41,6 +48,13 @@ public class NewsService {
 
     private static final Logger log = LoggerFactory.getLogger(NewsService.class);
     private static final List<String> SUPPORTED_CATEGORIES = List.of("general", "business", "technology", "sports", "science", "health");
+    private static final Map<String, String> RSS_FEEDS = Map.of(
+            "general", "https://feeds.bbci.co.uk/news/world/asia/india/rss.xml",
+            "business", "https://feeds.bbci.co.uk/news/business/rss.xml",
+            "technology", "https://feeds.bbci.co.uk/news/technology/rss.xml",
+            "sports", "https://feeds.bbci.co.uk/sport/rss.xml",
+            "science", "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+            "health", "https://feeds.bbci.co.uk/news/health/rss.xml");
 
     private final NewsHeadlineRepository repository;
     private final RestTemplate restTemplate;
@@ -83,7 +97,8 @@ public class NewsService {
     public void refresh() {
         removeStaleHeadlines();
         if (!hasApiKey()) {
-            log.warn("app.news.api-key is not set — using cached headlines only.");
+            log.warn("app.news.api-key is not set — refreshing headlines from public RSS feeds.");
+            refreshFromRssFeeds();
             return;
         }
         try {
@@ -94,14 +109,19 @@ public class NewsService {
 
             if (saved == 0 && repository.findTop50ByOrderByPublishedAtDesc().isEmpty()) {
                 log.info("Top headlines returned no usable articles; trying fallback news search for query='{}'.", query);
-                refreshFromUrl(fallbackSearchUrl(null), "fallback search", "general");
+                int fallbackSaved = refreshFromUrl(fallbackSearchUrl(null), "fallback search", "general");
+                if (fallbackSaved == 0 && repository.findTop50ByOrderByPublishedAtDesc().isEmpty()) {
+                    refreshFromRssFeeds();
+                }
             }
 
             log.info("Refreshed news headlines. Cached headline count now {}.", repository.findTop50ByOrderByPublishedAtDesc().size());
         } catch (HttpStatusCodeException e) {
             log.warn("News provider refresh failed with HTTP status {}.", e.getStatusCode());
+            refreshFromRssIfCacheEmpty();
         } catch (Exception e) {
             log.error("Failed to refresh news headlines", e);
+            refreshFromRssIfCacheEmpty();
         }
     }
 
@@ -209,6 +229,75 @@ public class NewsService {
 
         log.info("News provider {} returned {} articles and saved {} new headlines.", source, articles.size(), saved);
         return saved;
+    }
+
+    private void refreshFromRssIfCacheEmpty() {
+        if (repository.findTop50ByOrderByPublishedAtDesc().isEmpty()) {
+            refreshFromRssFeeds();
+        }
+    }
+
+    private void refreshFromRssFeeds() {
+        int saved = 0;
+        for (String category : SUPPORTED_CATEGORIES) {
+            try {
+                saved += refreshRssFeed(category, RSS_FEEDS.get(category));
+            } catch (Exception e) {
+                log.warn("Could not refresh {} headlines from the public RSS feed.", category, e);
+            }
+        }
+        if (saved == 0) {
+            log.warn("Public RSS feeds returned no new headlines.");
+        } else {
+            log.info("Saved {} headlines from public RSS feeds.", saved);
+        }
+    }
+
+    private int refreshRssFeed(String category, String url) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.USER_AGENT, "WireBlog/1.0");
+        ResponseEntity<String> response = restTemplate.exchange(
+                url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        Document feed = Jsoup.parse(response.getBody(), url, Parser.xmlParser());
+        Set<String> existingUrls = new HashSet<>();
+        repository.findTop50ByCategoryOrderByPublishedAtDesc(category)
+                .forEach(headline -> existingUrls.add(headline.getSourceUrl()));
+
+        int saved = 0;
+        for (Element item : feed.select("item")) {
+            String title = elementText(item, "title");
+            String sourceUrl = elementText(item, "link");
+            if (!isUsableArticle(title, sourceUrl) || !existingUrls.add(sourceUrl)) {
+                continue;
+            }
+
+            String sourceName = elementText(item, "source");
+            String description = elementText(item, "description");
+            repository.save(NewsHeadline.builder()
+                    .title(title)
+                    .sourceUrl(sourceUrl)
+                    .sourceName(sourceName == null || sourceName.isBlank() ? "BBC News" : sourceName)
+                    .description(cleanDescription(description == null ? null : Jsoup.parse(description).text()))
+                    .category(category)
+                    .publishedAt(parseRssPublishedAt(elementText(item, "pubDate")))
+                    .build());
+            saved++;
+        }
+        return saved;
+    }
+
+    private String elementText(Element parent, String selector) {
+        Element element = parent.selectFirst(selector);
+        return element == null ? null : element.text();
+    }
+
+    private Instant parseRssPublishedAt(String publishedAt) {
+        try {
+            return publishedAt == null ? Instant.now()
+                    : ZonedDateTime.parse(publishedAt, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
+        } catch (Exception e) {
+            return Instant.now();
+        }
     }
 
     private String topHeadlinesUrl(String category) {

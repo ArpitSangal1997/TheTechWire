@@ -1,7 +1,10 @@
 <main class="wb-container group-detail">
   <a class="group-detail__back" routerLink="/groups">← All groups</a>
   <p *ngIf="loading" class="group-detail__notice">Loading group…</p>
-  <p *ngIf="error" class="group-detail__error">{{ error }}</p>
+  <p *ngIf="error" class="group-detail__error">
+    {{ error }}
+    <button *ngIf="groupId > 0" type="button" class="wb-btn wb-btn--ghost" (click)="load()">Retry</button>
+  </p>
 
   <ng-container *ngIf="group as currentGroup">
     <header class="group-detail__header wb-card">
