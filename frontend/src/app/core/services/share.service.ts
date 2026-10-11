@@ -15,6 +15,6 @@ export class ShareService {
 
   /** Builds the public, copy-pasteable URL for a post. */
   publicUrl(slug: string): string {
-    return `${window.location.origin}/post/${slug}`;
+    return new URL(`post/${encodeURIComponent(slug)}`, document.baseURI).toString();
   }
 }

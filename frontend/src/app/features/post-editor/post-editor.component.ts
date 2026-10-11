@@ -136,7 +136,7 @@ export class PostEditorComponent implements OnInit, AfterViewInit {
     request.subscribe({
       next: (post) => {
         this.saving = false;
-        this.router.navigate(['/post', post.slug]);
+        this.router.navigate(publish ? ['/post', post.slug] : ['/my-stories']);
       },
       error: (err) => {
         this.saving = false;
