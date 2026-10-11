@@ -171,7 +171,8 @@ public class NewsService {
         for (JsonNode a : articles) {
             String title = textOrNull(a, "title");
             String sourceUrl = textOrNull(a, "url");
-            if (!isUsableArticle(title, sourceUrl) || !existingUrls.add(sourceUrl)) continue;
+            Instant publishedAt = parsePublishedAt(textOrNull(a, "publishedAt"));
+            if (!isUsableArticle(title, sourceUrl) || !isRecent(publishedAt) || !existingUrls.add(sourceUrl)) continue;
 
             NewsHeadline headline = NewsHeadline.builder()
                     .title(title)
@@ -180,7 +181,7 @@ public class NewsService {
                     .imageUrl(textOrNull(a, "urlToImage"))
                     .description(cleanDescription(textOrNull(a, "description")))
                     .category(category)
-                    .publishedAt(parsePublishedAt(textOrNull(a, "publishedAt")))
+                    .publishedAt(publishedAt)
                     .build();
             repository.save(headline);
             saved++;
@@ -212,7 +213,8 @@ public class NewsService {
         for (JsonNode a : articles) {
             String title = textOrNull(a, "title");
             String sourceUrl = textOrNull(a, "url");
-            if (!isUsableArticle(title, sourceUrl) || !existingUrls.add(sourceUrl)) continue;
+            Instant publishedAt = parsePublishedAt(textOrNull(a, "publishedAt"));
+            if (!isUsableArticle(title, sourceUrl) || !isRecent(publishedAt) || !existingUrls.add(sourceUrl)) continue;
 
             NewsHeadline headline = NewsHeadline.builder()
                     .title(title)
@@ -221,7 +223,7 @@ public class NewsService {
                     .imageUrl(textOrNull(a, "urlToImage"))
                     .description(cleanDescription(textOrNull(a, "description")))
                     .category(category)
-                    .publishedAt(parsePublishedAt(textOrNull(a, "publishedAt")))
+                    .publishedAt(publishedAt)
                     .build();
             repository.save(headline);
             saved++;
@@ -267,7 +269,8 @@ public class NewsService {
         for (Element item : feed.select("item")) {
             String title = elementText(item, "title");
             String sourceUrl = elementText(item, "link");
-            if (!isUsableArticle(title, sourceUrl) || !existingUrls.add(sourceUrl)) {
+            Instant publishedAt = parseRssPublishedAt(elementText(item, "pubDate"));
+            if (!isUsableArticle(title, sourceUrl) || !isRecent(publishedAt) || !existingUrls.add(sourceUrl)) {
                 continue;
             }
 
@@ -279,7 +282,7 @@ public class NewsService {
                     .sourceName(sourceName == null || sourceName.isBlank() ? "BBC News" : sourceName)
                     .description(cleanDescription(description == null ? null : Jsoup.parse(description).text()))
                     .category(category)
-                    .publishedAt(parseRssPublishedAt(elementText(item, "pubDate")))
+                    .publishedAt(publishedAt)
                     .build());
             saved++;
         }
@@ -343,6 +346,10 @@ public class NewsService {
     private boolean isUsableArticle(String title, String sourceUrl) {
         return title != null && !title.isBlank() && !"[Removed]".equalsIgnoreCase(title.trim())
                 && sourceUrl != null && sourceUrl.startsWith("http");
+    }
+
+    private boolean isRecent(Instant publishedAt) {
+        return !publishedAt.isBefore(Instant.now().minus(maxAgeHours, ChronoUnit.HOURS));
     }
 
     private String cleanDescription(String description) {

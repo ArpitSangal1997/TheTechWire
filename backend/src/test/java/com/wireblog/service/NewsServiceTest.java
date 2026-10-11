@@ -9,6 +9,11 @@ import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,17 +60,10 @@ class NewsServiceTest {
         RestTemplate restTemplate = new RestTemplate();
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         server.expect(ExpectedCount.times(6), requestTo(org.hamcrest.Matchers.containsString("feeds.bbci.co.uk")))
-                .andRespond(withSuccess("""
-                        <?xml version="1.0" encoding="UTF-8"?>
-                        <rss version="2.0"><channel><item>
-                          <title>Test headline</title>
-                          <link>https://www.bbc.com/news/test-headline</link>
-                          <description>A useful summary.</description>
-                          <pubDate>Sun, 11 Oct 2026 12:00:00 GMT</pubDate>
-                        </item></channel></rss>
-                        """, MediaType.APPLICATION_XML));
+                .andRespond(withSuccess(rssFeed(), MediaType.APPLICATION_XML));
         NewsService service = new NewsService(repository);
         ReflectionTestUtils.setField(service, "restTemplate", restTemplate);
+        ReflectionTestUtils.setField(service, "maxAgeHours", 24L);
 
         service.refresh();
 
@@ -83,9 +81,51 @@ class NewsServiceTest {
         });
     }
 
+    @Test
+    void refreshUsesRssWhenNewsApiFallbackOnlyReturnsStaleArticles() {
+        NewsHeadlineRepository repository = mock(NewsHeadlineRepository.class);
+        when(repository.findTop50ByCategoryOrderByPublishedAtDesc(anyString())).thenReturn(List.of());
+        when(repository.findTop50ByOrderByPublishedAtDesc()).thenReturn(List.of());
+
+        RestTemplate restTemplate = new RestTemplate();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        server.expect(ExpectedCount.times(6), requestTo(org.hamcrest.Matchers.containsString("/top-headlines")))
+                .andRespond(withSuccess("{\"status\":\"ok\",\"articles\":[]}", MediaType.APPLICATION_JSON));
+        String staleArticle = """
+                {"status":"ok","articles":[{"title":"Old article","url":"https://www.bbc.com/news/old-article","publishedAt":"%s"}]}
+                """.formatted(Instant.now().minus(48, ChronoUnit.HOURS));
+        server.expect(requestTo(org.hamcrest.Matchers.containsString("/everything")))
+                .andRespond(withSuccess(staleArticle, MediaType.APPLICATION_JSON));
+        server.expect(ExpectedCount.times(6), requestTo(org.hamcrest.Matchers.containsString("feeds.bbci.co.uk")))
+                .andRespond(withSuccess(rssFeed(), MediaType.APPLICATION_XML));
+        NewsService service = serviceWithApiKey(repository);
+        ReflectionTestUtils.setField(service, "restTemplate", restTemplate);
+
+        service.refresh();
+
+        server.verify();
+        verify(repository, times(6)).save(any());
+    }
+
+    private String rssFeed() {
+        String publishedAt = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneOffset.UTC));
+        return """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <rss version="2.0"><channel><item>
+                  <title>Test headline</title>
+                  <link>https://www.bbc.com/news/test-headline</link>
+                  <description>A useful summary.</description>
+                  <pubDate>%s</pubDate>
+                </item></channel></rss>
+                """.formatted(publishedAt);
+    }
+
     private NewsService serviceWithApiKey(NewsHeadlineRepository repository) {
         NewsService service = new NewsService(repository);
         ReflectionTestUtils.setField(service, "apiKey", "configured-test-key");
+        ReflectionTestUtils.setField(service, "baseUrl", "https://newsapi.org/v2/top-headlines");
+        ReflectionTestUtils.setField(service, "fallbackUrl", "https://newsapi.org/v2/everything");
+        ReflectionTestUtils.setField(service, "maxAgeHours", 24L);
         return service;
     }
 }
